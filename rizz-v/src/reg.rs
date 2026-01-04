@@ -60,10 +60,16 @@ impl File for RegFile {
 
 #[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
-pub enum OpCode {
+pub enum ROpCode {
     ADD,
     SUB,
     DIV,
     MUL,
     SLL,
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum IOpCode {
+    ADDI,
 }

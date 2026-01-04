@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RISC-V Trace Viz</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 24px;
+    }
+
+    .row {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    code {
+      background: #f6f6f6;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .changed {
+      font-weight: 700;
+      outline: 2px solid #000;
+      outline-offset: -2px;
+      background: #fffbe6;
+    }
+
+    pre {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Trace Visualizer</h2>
+
+  <div class="controls card">
+    <input type="file" id="fileInput" accept="application/json" />
+    <button id="prevBtn">Prev</button>
+    <button id="nextBtn">Next</button>
+    <button id="playBtn">Play</button>
+
+    <label class="muted">Step:</label>
+    <input id="stepSlider" type="range" min="0" max="0" value="0" />
+    <span id="stepLabel" class="muted"></span>
+
+    <label class="muted">Speed (ms):</label>
+    <input id="speedInput" type="number" value="400" min="50" step="50" style="width: 90px" />
+  </div>
+
+  <div class="row" style="margin-top: 16px">
+    <div class="card" style="min-width: 320px; flex: 1 1 320px">
+      <div><span class="muted">Instruction</span></div>
+      <div id="instrLine" style="font-size: 18px; margin-top: 6px"></div>
+      <pre id="instrJson" class="muted" style="margin-top: 10px; white-space: pre-wrap"></pre>
+    </div>
+
+    <div class="card" style="min-width: 520px; flex: 2 1 520px">
+      <div><span class="muted">Registers</span></div>
+      <div id="regsContainer" style="margin-top: 10px"></div>
+    </div>
+  </div>
+
+  <script>
+    // ABI-ish names for x0..x31
+    const ABI = [
+      "zero",
+      "ra",
+      "sp",
+      "gp",
+      "tp",
+      "t0",
+      "t1",
+      "t2",
+      "s0/fp",
+      "s1",
+      "a0",
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "a5",
+      "a6",
+      "a7",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6",
+      "s7",
+      "s8",
+      "s9",
+      "s10",
+      "s11",
+      "t3",
+      "t4",
+      "t5",
+      "t6",
+    ];
+
+    let trace = null;
+    let idx = 0;
+    let timer = null;
+
+    const el = (id) => document.getElementById(id);
+    const prevBtn = el("prevBtn");
+    const nextBtn = el("nextBtn");
+    const playBtn = el("playBtn");
+    const stepSlider = el("stepSlider");
+    const stepLabel = el("stepLabel");
+    const instrLine = el("instrLine");
+    const instrJson = el("instrJson");
+    const regsContainer = el("regsContainer");
+    const speedInput = el("speedInput");
+
+    // Supports serde default "externally tagged" enums like:
+    //   instr: { "R": { op_code, rd, rs1, rs2 } }
+    //   instr: { "I": { op_code, rd, imm, (optional rs1) } }
+    // and also the earlier "Nil" unit variant (string "Nil" or { "Nil": null }).
+    function normalizeInstruction(instr) {
+      if (typeof instr === "string") {
+        return {kind: instr};
+      }
+
+      if (instr && typeof instr === "object") {
+        // Externally tagged: {"R": {...}}, {"I": {...}}, ...
+        const keys = Object.keys(instr);
+        if (keys.length === 1) {
+          const kind = keys[0];
+          return {kind, data: instr[kind]};
+        }
+
+        // Some serde configs can encode unit variants as {"Nil":null}
+        if (Object.prototype.hasOwnProperty.call(instr, "Nil")) {
+          return {kind: "Nil"};
+        }
+      }
+
+      return {kind: "Unknown", raw: instr};
+    }
+
+    function formatInstr(instr) {
+      const n = normalizeInstruction(instr);
+
+      if (n.kind === "Nil") return "Nil";
+
+      if (n.kind === "R") {
+        const r = n.data || {};
+        return `${r.op_code} ${r.rd}, ${r.rs1}, ${r.rs2}`;
+      }
+
+      if (n.kind === "I") {
+        const i = n.data || {};
+        // Your sample IInst is: { op_code: "ADDI", rd: "T0", imm: 10 }
+        // If you later add rs1, we’ll show it.
+        if (i.rs1 !== undefined) {
+          return `${i.op_code} ${i.rd}, ${i.rs1}, ${i.imm}`;
+        }
+        return `${i.op_code} ${i.rd}, ${i.imm}`;
+      }
+
+      // Generic fallback: show tag name + best-effort fields
+      if (n.data && typeof n.data === "object") {
+        const fields = Object.entries(n.data)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(", ");
+        return `${n.kind} ${fields}`;
+      }
+
+      return `Unknown instruction`;
+    }
+
+    function computeChangedRegs(prevRegs, curRegs) {
+      if (!prevRegs) return new Set();
+      const changed = new Set();
+      for (let i = 0; i < curRegs.length; i++) {
+        if (curRegs[i] !== prevRegs[i]) changed.add(i);
+      }
+      return changed;
+    }
+
+    function render() {
+      if (!trace) return;
+
+      const states = trace.states || [];
+      const state = states[idx];
+      const prev = idx > 0 ? states[idx - 1] : null;
+
+      stepSlider.value = idx;
+      stepLabel.textContent = ` ${idx + 1} / ${states.length} (step=${state.step})`;
+
+      instrLine.innerHTML = `<code>${formatInstr(state.instr)}</code>`;
+      instrJson.textContent = JSON.stringify(state.instr, null, 2);
+
+      const curRegs = state.reg_file.regs;
+      const prevRegs = prev ? prev.reg_file.regs : null;
+      const changed = computeChangedRegs(prevRegs, curRegs);
+
+      // Horizontal grid: max 10 regs per row
+      let html = `
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(10, minmax(90px, 1fr));
+            gap: 8px;
+          ">
+        `;
+
+      for (let i = 0; i < curRegs.length; i++) {
+        const abi = ABI[i] ?? "?";
+        const cls = changed.has(i) ? "changed" : "";
+        html += `
+            <div class="${cls}" style="
+              border: 1px solid #eee;
+              border-radius: 8px;
+              padding: 6px 8px;
+              text-align: center;
+              font-variant-numeric: tabular-nums;
+            ">
+              <div class="muted" style="font-size: 12px;">x${i} (${abi})</div>
+              <div style="font-size: 15px;">${curRegs[i]}</div>
+            </div>
+          `;
+      }
+
+      html += `</div>`;
+      regsContainer.innerHTML = html;
+
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx === states.length - 1;
+    }
+
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      playBtn.textContent = "Play";
+    }
+
+    function play() {
+      if (!trace) return;
+      stop();
+
+      const speedMs = Math.max(50, Number(speedInput.value) || 400);
+      playBtn.textContent = "Pause";
+
+      timer = setInterval(() => {
+        if (idx >= trace.states.length - 1) {
+          stop();
+          return;
+        }
+        idx++;
+        render();
+      }, speedMs);
+    }
+
+    prevBtn.onclick = () => {
+      stop();
+      if (idx > 0) {
+        idx--;
+        render();
+      }
+    };
+
+    nextBtn.onclick = () => {
+      stop();
+      if (trace && idx < trace.states.length - 1) {
+        idx++;
+        render();
+      }
+    };
+
+    playBtn.onclick = () => {
+      if (timer) stop();
+      else play();
+    };
+
+    stepSlider.oninput = (e) => {
+      stop();
+      idx = Number(e.target.value);
+      render();
+    };
+
+    el("fileInput").addEventListener("change", async (e) => {
+      stop();
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const text = await file.text();
+      trace = JSON.parse(text);
+
+      idx = 0;
+      stepSlider.min = 0;
+      stepSlider.max = Math.max(0, (trace.states?.length || 1) - 1);
+
+      render();
+    });
+  </script>
+</body>
+
+</html>
