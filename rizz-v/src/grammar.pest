@@ -1,0 +1,11 @@
+program = {line+}
+line = {instruction? ~ NEWLINE+}
+instruction = {cmd ~ operands?}
+cmd = @{ASCII_ALPHA+}
+operands = {operand+}
+operand = {(register ~ "," ~ register ~ "," ~ register) | (ASCII_DIGIT+ ~ register)}
+register = {( reg_type ~ ASCII_DIGIT{1, 2} ) | "fp" | "ra"}
+reg_type = {"s" | "t" | "a"}
+WHITESPACE = _{" " | "\t"}
+NEWLINE = {"\n" | "\r\n" | "\r"}
+COMMENT = _{"#" ~ ASCII_ALPHANUMERIC* ~ NEWLINE}
