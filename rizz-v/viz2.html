@@ -41,7 +41,6 @@
       border-radius: 6px;
     }
 
-    /* Diff highlight (from previous step) */
     .changed {
       font-weight: 700;
       outline: 2px solid #000;
@@ -49,22 +48,26 @@
       background: #fffbe6;
     }
 
-    /* NEW: source register highlight (rs1/rs2) */
-    .src-reg {
-      outline: 2px dashed #000;
-      outline-offset: -2px;
-      background: #e9f2ff;
-    }
-
-    /* Optional: if you ever want rd highlight later */
-    .dst-reg {
-      outline: 2px solid #000;
-      outline-offset: -2px;
-      background: #eaffe9;
-    }
-
     pre {
       margin: 0;
+    }
+
+    /* Arrow overlay */
+    .regs-wrap {
+      position: relative;
+    }
+
+    .arrow-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .arrow-path {
+      fill: none;
+      stroke: #000;
+      stroke-width: 2;
+      opacity: 0.35;
     }
   </style>
 </head>
@@ -136,8 +139,7 @@
       "t6",
     ];
 
-    // Map your Rust Register serialization (e.g. "T0") to x-index.
-    // Adjust if your enum names differ.
+    // Map Rust Register serialization (e.g. "T0") to x-index.
     const REG_TO_X = {
       ZERO: 0,
       RA: 1,
@@ -196,10 +198,9 @@
     const regsContainer = el("regsContainer");
     const speedInput = el("speedInput");
 
-    // Supports serde "externally tagged" enums like:
-    //   "instr": "Nil"
-    //   "instr": { "I": { op_code, rd, imm, (optional rs1) } }
-    //   "instr": { "R": { op_code, rd, rs1, rs2 } }
+    // "instr": "Nil"
+    // "instr": { "I": { op_code, rd, imm, (optional rs1) } }
+    // "instr": { "R": { op_code, rd, rs1, rs2 } }
     function normalizeInstruction(instr) {
       if (typeof instr === "string") return {kind: instr};
 
@@ -250,25 +251,106 @@
       return changed;
     }
 
-    // NEW: compute source registers (x indices) to highlight, based on current instruction
-    function computeSourceRegs(instr) {
+    // NEW: compute arrow endpoints (sources -> dest) based on current instruction
+    function computeRegFlow(instr) {
       const n = normalizeInstruction(instr);
-      const src = new Set();
+
+      // returns { sources: Set<xIndex>, dest: xIndex|null }
+      const sources = new Set();
+      let dest = null;
 
       if (n.kind === "R") {
         const r = n.data || {};
-        const i1 = regNameToIndex(r.rs1);
-        const i2 = regNameToIndex(r.rs2);
-        if (i1 !== null) src.add(i1);
-        if (i2 !== null) src.add(i2);
+        dest = regNameToIndex(r.rd);
+        const s1 = regNameToIndex(r.rs1);
+        const s2 = regNameToIndex(r.rs2);
+        if (s1 !== null) sources.add(s1);
+        if (s2 !== null) sources.add(s2);
       } else if (n.kind === "I") {
         const i = n.data || {};
-        // If your IInst later includes rs1, highlight it.
-        const i1 = regNameToIndex(i.rs1);
-        if (i1 !== null) src.add(i1);
+        dest = regNameToIndex(i.rd);
+        const s1 = regNameToIndex(i.rs1); // optional in your current JSON
+        if (s1 !== null) sources.add(s1);
       }
 
-      return src;
+      if (dest !== null) sources.delete(dest); // avoid self-arrows
+      return {sources, dest};
+    }
+
+    function clearArrows() {
+      const svg = el("arrowSvg");
+      if (svg) svg.remove();
+    }
+
+    function drawArrows({sources, dest}) {
+      clearArrows();
+      if (dest === null || sources.size === 0) return;
+
+      const wrap = el("regsWrap");
+      const grid = el("regsGrid");
+      if (!wrap || !grid) return;
+
+      const wrapRect = wrap.getBoundingClientRect();
+
+      // Create SVG overlay sized to wrapper
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("id", "arrowSvg");
+      svg.setAttribute("class", "arrow-layer");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.setAttribute("viewBox", `0 0 ${wrapRect.width} ${wrapRect.height}`);
+
+      // Arrow head marker
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+      marker.setAttribute("id", "arrowHead");
+      marker.setAttribute("markerWidth", "10");
+      marker.setAttribute("markerHeight", "10");
+      marker.setAttribute("refX", "8");
+      marker.setAttribute("refY", "5");
+      marker.setAttribute("orient", "auto");
+      marker.setAttribute("markerUnits", "strokeWidth");
+
+      const arrowShape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      arrowShape.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+      arrowShape.setAttribute("fill", "#000");
+
+      marker.appendChild(arrowShape);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+
+      const destEl = el(`reg-${dest}`);
+      if (!destEl) return;
+
+      const dRect = destEl.getBoundingClientRect();
+      const dx = dRect.left + dRect.width / 2 - wrapRect.left;
+      const dy = dRect.top + dRect.height / 2 - wrapRect.top;
+
+      // Draw a slightly curved path from each source to dest.
+      for (const s of sources) {
+        const srcEl = el(`reg-${s}`);
+        if (!srcEl) continue;
+
+        const sRect = srcEl.getBoundingClientRect();
+        const sx = sRect.left + sRect.width / 2 - wrapRect.left;
+        const sy = sRect.top + sRect.height / 2 - wrapRect.top;
+
+        // Simple quadratic curve control point:
+        // lift a bit upward (or downward) depending on relative y
+        const midX = (sx + dx) / 2;
+        const lift = sy <= dy ? -35 : 35;
+        const ctrlY = (sy + dy) / 2 + lift;
+        const ctrlX = midX;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("class", "arrow-path");
+        path.setAttribute("marker-end", "url(#arrowHead)");
+        path.setAttribute("d", `M ${sx} ${sy} Q ${ctrlX} ${ctrlY} ${dx} ${dy}`);
+
+        svg.appendChild(path);
+      }
+
+      wrap.appendChild(svg);
     }
 
     function render() {
@@ -288,27 +370,22 @@
       const prevRegs = prev ? prev.reg_file.regs : null;
       const changed = computeChangedRegs(prevRegs, curRegs);
 
-      const srcRegs = computeSourceRegs(state.instr);
-
-      // Horizontal grid: max 6 regs per row
+      // Render registers (6 per row) in a wrapper that can host the SVG overlay.
       let html = `
-          <div style="
-            display: grid;
-            grid-template-columns: repeat(6, minmax(110px, 1fr));
-            gap: 10px;
-          ">
+          <div id="regsWrap" class="regs-wrap">
+            <div id="regsGrid" style="
+              display: grid;
+              grid-template-columns: repeat(6, minmax(110px, 1fr));
+              gap: 10px;
+            ">
         `;
 
       for (let i = 0; i < curRegs.length; i++) {
         const abi = ABI[i] ?? "?";
-
-        // Combine classes: changed + src highlight
-        const classes = [];
-        if (changed.has(i)) classes.push("changed");
-        if (srcRegs.has(i)) classes.push("src-reg");
+        const cls = changed.has(i) ? "changed" : "";
 
         html += `
-            <div class="${classes.join(" ")}" style="
+            <div id="reg-${i}" class="${cls}" style="
               border: 1px solid #eee;
               border-radius: 10px;
               padding: 8px 10px;
@@ -321,12 +398,28 @@
           `;
       }
 
-      html += `</div>`;
+      html += `
+            </div>
+          </div>
+        `;
+
       regsContainer.innerHTML = html;
 
       prevBtn.disabled = idx === 0;
       nextBtn.disabled = idx === states.length - 1;
+
+      // Draw arrows after DOM has laid out (needs computed positions).
+      const flow = computeRegFlow(state.instr);
+      requestAnimationFrame(() => drawArrows(flow));
     }
+
+    // Keep arrows correct on resize
+    window.addEventListener("resize", () => {
+      if (!trace) return;
+      const state = trace.states[idx];
+      const flow = computeRegFlow(state.instr);
+      requestAnimationFrame(() => drawArrows(flow));
+    });
 
     function stop() {
       if (timer) clearInterval(timer);

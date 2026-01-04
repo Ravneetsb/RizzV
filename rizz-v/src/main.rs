@@ -25,7 +25,7 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
             let mut inner = pair.into_inner();
             let op_token = inner.next().unwrap().as_str().trim().to_string();
             let operands = inner.next().unwrap().into_inner().next().unwrap();
-            println!("{:?}", operands);
+            // println!("{:?}", operands);
             match operands.as_rule() {
                 Rule::r_operand => {
                     let op_code = ROpCode::from_str(&op_token).unwrap();
@@ -74,7 +74,7 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                     let op_code = IOpCode::from_str(&op_token).unwrap();
                     let mut it = operands.into_inner();
                     let rd = Register::from_str(it.next().unwrap().as_str()).unwrap();
-                    println!("{:?}", it);
+                    // println!("{:?}", it);
                     let imm_str = it.next().unwrap().as_str().trim();
                     let imm: i32 = imm_str.parse().unwrap();
                     match op_code {
@@ -108,7 +108,7 @@ fn main() {
     let mut regs = reg::RegFile::default();
     let input = fs::read_to_string("itest.s").unwrap();
     let mut states = States::default();
-    println!("{:?}", states);
+    // println!("{:?}", states);
     // regs.set(Register::A0, 10);
     // regs.set(Register::A1, 3);
     // println!("{:?}", regs);

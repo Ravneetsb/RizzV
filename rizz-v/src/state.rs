@@ -10,10 +10,29 @@ pub struct State {
     pub instr: Instruction,
 }
 
-#[derive(Debug, Serialize, Default)]
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            step: 1,
+            reg_file: RegFile::default(),
+            instr: Instruction::Nil,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct States {
     pub states: Vec<State>,
     pub count: u8,
+}
+
+impl Default for States {
+    fn default() -> Self {
+        Self {
+            states: vec![State::default()],
+            count: 1,
+        }
+    }
 }
 
 impl States {
