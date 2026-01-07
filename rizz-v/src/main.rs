@@ -74,19 +74,21 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                     let op_code = IOpCode::from_str(&op_token).unwrap();
                     let mut it = operands.into_inner();
                     let rd = Register::from_str(it.next().unwrap().as_str()).unwrap();
+                    let rs = Register::from_str(it.next().unwrap().as_str()).unwrap();
                     // println!("{:?}", it);
                     let imm_str = it.next().unwrap().as_str().trim();
                     let imm: i32 = imm_str.parse().unwrap();
                     match op_code {
                         IOpCode::ADDI => {
-                            regs.set(rd.clone(), regs.get(rd.clone()) + imm as i64);
+                            regs.set(rd.clone(), regs.get(rs.clone()) + imm as i64);
 
                             states.add(State {
                                 step: states.count + 1,
                                 reg_file: regs.clone(),
                                 instr: Instruction::I(IInst {
                                     op_code,
-                                    rd: rd.clone(),
+                                    rd,
+                                    rs,
                                     imm,
                                 }),
                             });

@@ -26,5 +26,6 @@ pub struct RInst {
 pub struct IInst {
     pub op_code: IOpCode,
     pub rd: Register,
+    pub rs: Register,
     pub imm: i32,
 }
