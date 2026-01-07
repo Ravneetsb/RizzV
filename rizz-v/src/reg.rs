@@ -73,3 +73,9 @@ pub enum ROpCode {
 pub enum IOpCode {
     ADDI,
 }
+
+#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+pub enum PseudoCode {
+    MV,
+    LI,
+}

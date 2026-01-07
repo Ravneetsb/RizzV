@@ -1,7 +1,7 @@
 use crate::reg::*;
 use serde::Serialize;
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub enum Instruction {
     R(RInst),
     I(IInst),
@@ -14,7 +14,7 @@ impl Default for Instruction {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct RInst {
     pub op_code: ROpCode,
     pub rd: Register,
@@ -22,7 +22,7 @@ pub struct RInst {
     pub rs2: Register,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct IInst {
     pub op_code: IOpCode,
     pub rd: Register,

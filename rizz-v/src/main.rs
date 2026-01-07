@@ -4,6 +4,8 @@ use pest::{Parser, iterators::Pair};
 use pest_derive::Parser;
 use std::fs;
 use std::str::FromStr;
+pub mod assembler;
+pub mod cpu;
 pub mod instruction;
 pub mod reg;
 pub mod state;
@@ -21,6 +23,12 @@ pub struct RizzParser;
 
 fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
     match pair.as_rule() {
+        Rule::label => {
+            println!("Found a label!");
+            let mut inner = pair.into_inner();
+            let lbl = inner.next().unwrap().as_str().trim().to_string();
+            println!("{}", lbl);
+        }
         Rule::instruction => {
             let mut inner = pair.into_inner();
             let op_token = inner.next().unwrap().as_str().trim().to_string();
@@ -95,6 +103,13 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                         }
                     }
                 }
+                Rule::binary_operand => {
+                    // let op_code =
+                    todo!("mv")
+                }
+                Rule::binary_imm_operand => {
+                    todo!("li")
+                }
                 _ => todo!(),
             }
         }
@@ -107,20 +122,30 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
 }
 
 fn main() {
-    let mut regs = reg::RegFile::default();
     let input = fs::read_to_string("itest.s").unwrap();
-    let mut states = States::default();
-    // println!("{:?}", states);
-    // regs.set(Register::A0, 10);
-    // regs.set(Register::A1, 3);
-    // println!("{:?}", regs);
-
-    let parsed = RizzParser::parse(Rule::program, &input)
+    let mut asm = assembler::Assembler::default();
+    let pair = RizzParser::parse(Rule::program, &input)
         .expect("oof")
         .next()
         .unwrap();
-    run(parsed, &mut regs, &mut states);
-    // println!("{:?}", regs);
-    let json = serde_json::to_string_pretty(&states).unwrap();
-    println!("{}", json);
+    asm.assemble(pair);
+    asm.to_json();
 }
+// fn main() {
+//     let mut regs = reg::RegFile::default();
+//     let input = fs::read_to_string("itest.s").unwrap();
+//     let mut states = States::default();
+//     // println!("{:?}", states);
+//     // regs.set(Register::A0, 10);
+//     // regs.set(Register::A1, 3);
+//     // println!("{:?}", regs);
+//
+//     let parsed = RizzParser::parse(Rule::program, &input)
+//         .expect("oof")
+//         .next()
+//         .unwrap();
+//     run(parsed, &mut regs, &mut states);
+//     // println!("{:?}", regs);
+//     let json = serde_json::to_string_pretty(&states).unwrap();
+//     // println!("{}", json);
+// }
