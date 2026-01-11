@@ -1,3 +1,5 @@
-li a0, 5
-ret
-
+sadd4:
+    add a0, a0, a1 
+    add a0, a0, a2
+    add a0, a0, a3
+    ret

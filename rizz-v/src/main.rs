@@ -65,7 +65,6 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                             let result = regs.get(rs1.clone()) << regs.get(rs2.clone());
                             regs.set(rd.clone(), result);
                         }
-                        _ => unreachable!(),
                     }
                     let state = State {
                         step: states.count + 1,
@@ -132,21 +131,3 @@ fn main() {
     asm.assemble(pair);
     asm.to_json();
 }
-// fn main() {
-//     let mut regs = reg::RegFile::default();
-//     let input = fs::read_to_string("itest.s").unwrap();
-//     let mut states = States::default();
-//     // println!("{:?}", states);
-//     // regs.set(Register::A0, 10);
-//     // regs.set(Register::A1, 3);
-//     // println!("{:?}", regs);
-//
-//     let parsed = RizzParser::parse(Rule::program, &input)
-//         .expect("oof")
-//         .next()
-//         .unwrap();
-//     run(parsed, &mut regs, &mut states);
-//     // println!("{:?}", regs);
-//     let json = serde_json::to_string_pretty(&states).unwrap();
-//     // println!("{}", json);
-// }

@@ -18,7 +18,7 @@ impl Default for Instruction {
 impl Instruction {
     pub fn ret() -> Self {
         Instruction::J(JInst {
-            op_code: ROpCode::JALR,
+            op_code: JOpCode::JALR,
             rd: Register::Zero,
             address: Memory {
                 register: Register::RA,
@@ -36,7 +36,7 @@ pub struct Memory {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct JInst {
-    pub op_code: ROpCode,
+    pub op_code: JOpCode,
     pub rd: Register,
     pub address: Memory,
 }

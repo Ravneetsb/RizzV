@@ -67,13 +67,18 @@ pub enum ROpCode {
     DIV,
     MUL,
     SLL,
-    JALR,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum IOpCode {
     ADDI,
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum JOpCode {
+    JALR,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]

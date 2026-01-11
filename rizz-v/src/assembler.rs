@@ -60,7 +60,8 @@ impl Assembler {
                         .by_ref()
                         .take(3)
                         .map(|p| {
-                            Register::from_str(p.as_str()).expect("Invalid register in R-type Inst")
+                            Register::from_str(p.as_str().trim())
+                                .expect("Invalid register in R-type Inst")
                         })
                         .collect();
 
@@ -79,7 +80,8 @@ impl Assembler {
                         .by_ref()
                         .take(2)
                         .map(|p| {
-                            Register::from_str(p.as_str()).expect("Invalid register in I-type Inst")
+                            Register::from_str(p.as_str().trim())
+                                .expect("Invalid register in I-type Inst")
                         })
                         .collect();
                     let [rd, rs] = regs.try_into().unwrap();
@@ -100,7 +102,7 @@ impl Assembler {
                         .by_ref()
                         .take(2)
                         .map(|p| {
-                            Register::from_str(p.as_str())
+                            Register::from_str(p.as_str().trim())
                                 .expect("invalid reg in pseudo-instruction")
                         })
                         .collect();
@@ -152,7 +154,9 @@ impl Assembler {
 
 impl Assembler {
     pub fn to_json(&mut self) {
-        let json = serde_json::to_string_pretty(&self).unwrap();
+        let json = serde_json::to_string_pretty(&self.program).unwrap();
         println!("{}", json);
+        let labels = serde_json::to_string_pretty(&self.labels).unwrap();
+        println!("{}", labels);
     }
 }
