@@ -6,7 +6,6 @@ use serde::Serialize;
 pub struct State {
     pub step: u8,
     pub reg_file: RegFile,
-    // instr: &'a str,
     pub instr: Instruction,
 }
 

@@ -9,6 +9,7 @@ use strum_macros::{Display, EnumIter, EnumString};
 #[repr(u8)]
 pub enum Register {
     Zero = 0,
+    RA = 1,
     T0 = 5,
     T1 = 6,
     T2 = 7,
@@ -66,6 +67,7 @@ pub enum ROpCode {
     DIV,
     MUL,
     SLL,
+    JALR,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
@@ -75,7 +77,9 @@ pub enum IOpCode {
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
 pub enum PseudoCode {
     MV,
     LI,
+    RET,
 }

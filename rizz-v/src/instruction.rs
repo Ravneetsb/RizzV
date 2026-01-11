@@ -6,6 +6,7 @@ pub enum Instruction {
     R(RInst),
     I(IInst),
     Nil,
+    J(JInst),
 }
 
 impl Default for Instruction {
@@ -14,6 +15,31 @@ impl Default for Instruction {
     }
 }
 
+impl Instruction {
+    pub fn ret() -> Self {
+        Instruction::J(JInst {
+            op_code: ROpCode::JALR,
+            rd: Register::Zero,
+            address: Memory {
+                register: Register::RA,
+                offset: 0,
+            },
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
+pub struct Memory {
+    pub register: Register,
+    pub offset: i32,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
+pub struct JInst {
+    pub op_code: ROpCode,
+    pub rd: Register,
+    pub address: Memory,
+}
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct RInst {
     pub op_code: ROpCode,

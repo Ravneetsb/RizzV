@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::Rule;
 use crate::cpu::CPU;
-use crate::instruction::{IInst, Instruction, RInst};
+use crate::instruction::{IInst, Instruction, JInst, Memory, RInst};
 use crate::reg::{IOpCode, PseudoCode, ROpCode, RegFile, Register};
 use serde_json;
 
@@ -47,79 +47,106 @@ impl Assembler {
             .as_str()
             .trim()
             .to_string();
-        let operands = inner
+        let ops = inner
             .next()
-            .expect("Expected operands in instruction")
-            .into_inner()
-            .next()
-            .unwrap();
+            .and_then(|operands| operands.into_inner().next());
 
-        let inst = match operands.as_rule() {
-            Rule::r_operand => {
-                let op_code = ROpCode::from_str(&op_token).unwrap();
-                let mut registers = operands.into_inner();
-                let regs: Vec<Register> = registers
-                    .by_ref()
-                    .take(3)
-                    .map(|p| {
-                        Register::from_str(p.as_str()).expect("Invalid register in R-type Inst")
-                    })
-                    .collect();
+        if let Some(operands) = ops {
+            let inst = match operands.as_rule() {
+                Rule::r_operand => {
+                    let op_code = ROpCode::from_str(&op_token).unwrap();
+                    let mut registers = operands.into_inner();
+                    let regs: Vec<Register> = registers
+                        .by_ref()
+                        .take(3)
+                        .map(|p| {
+                            Register::from_str(p.as_str()).expect("Invalid register in R-type Inst")
+                        })
+                        .collect();
 
-                let [rd, rs1, rs2] = regs.try_into().expect("Invalid register in R-type Inst");
-                Instruction::R(RInst {
-                    op_code,
-                    rd,
-                    rs1,
-                    rs2,
-                })
-            }
-            Rule::i_operand => {
-                let op_code = IOpCode::from_str(&op_token).expect("Invalid I-type Inst");
-                let mut registers = operands.into_inner();
-                let regs: Vec<Register> = registers
-                    .by_ref()
-                    .take(2)
-                    .map(|p| {
-                        Register::from_str(p.as_str()).expect("Invalid register in I-type Inst")
+                    let [rd, rs1, rs2] = regs.try_into().expect("Invalid register in R-type Inst");
+                    Instruction::R(RInst {
+                        op_code,
+                        rd,
+                        rs1,
+                        rs2,
                     })
-                    .collect();
-                let [rd, rs] = regs.try_into().unwrap();
-                let imm_str = registers.next().unwrap().as_str().trim();
-                let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
-                Instruction::I(IInst {
-                    op_code,
-                    rd,
-                    rs,
-                    imm,
-                })
-            }
-            Rule::binary_operand => {
-                let pseudo_code =
-                    PseudoCode::from_str(&op_token).expect("Invalid pseudo-instruction");
-                let mut registers = operands.into_inner();
-                let regs: Vec<Register> = registers
-                    .by_ref()
-                    .take(2)
-                    .map(|p| {
-                        Register::from_str(p.as_str()).expect("invalid reg in pseudo-instruction")
+                }
+                Rule::i_operand => {
+                    let op_code = IOpCode::from_str(&op_token).expect("Invalid I-type Inst");
+                    let mut registers = operands.into_inner();
+                    let regs: Vec<Register> = registers
+                        .by_ref()
+                        .take(2)
+                        .map(|p| {
+                            Register::from_str(p.as_str()).expect("Invalid register in I-type Inst")
+                        })
+                        .collect();
+                    let [rd, rs] = regs.try_into().unwrap();
+                    let imm_str = registers.next().unwrap().as_str().trim();
+                    let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
+                    Instruction::I(IInst {
+                        op_code,
+                        rd,
+                        rs,
+                        imm,
                     })
-                    .collect();
-                let [rd, rs] = regs.try_into().unwrap();
-                let op_code = match pseudo_code {
-                    PseudoCode::MV => IOpCode::ADDI,
-                    _ => todo!(),
-                };
-                Instruction::I(IInst {
-                    op_code,
-                    rd,
-                    rs,
-                    imm: 0,
-                })
-            }
-            _ => todo!(),
-        };
-        inst
+                }
+                Rule::binary_operand => {
+                    let pseudo_code =
+                        PseudoCode::from_str(&op_token).expect("Invalid pseudo-instruction");
+                    let mut registers = operands.into_inner();
+                    let regs: Vec<Register> = registers
+                        .by_ref()
+                        .take(2)
+                        .map(|p| {
+                            Register::from_str(p.as_str())
+                                .expect("invalid reg in pseudo-instruction")
+                        })
+                        .collect();
+                    let [rd, rs] = regs.try_into().unwrap();
+                    let op_code = match pseudo_code {
+                        PseudoCode::MV => IOpCode::ADDI,
+                        _ => todo!(),
+                    };
+                    Instruction::I(IInst {
+                        op_code,
+                        rd,
+                        rs,
+                        imm: 0,
+                    })
+                }
+                Rule::binary_imm_operand => {
+                    let pseudo_code =
+                        PseudoCode::from_str(&op_token).expect("Invalid pseudo-instruction");
+                    let mut register = operands.into_inner();
+                    let rd = Register::from_str(register.next().unwrap().as_str())
+                        .expect("Invalid reg in pseudo-instruction");
+                    let imm_str = register.next().unwrap().as_str().trim();
+                    let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
+                    let op_code = match pseudo_code {
+                        PseudoCode::LI => IOpCode::ADDI,
+                        _ => todo!(),
+                    };
+                    Instruction::I(IInst {
+                        op_code,
+                        rd,
+                        rs: Register::Zero,
+                        imm,
+                    })
+                }
+                _ => todo!(),
+            };
+            inst
+        } else {
+            let pseudo_code =
+                PseudoCode::from_str(&op_token).expect("Unknown op_code in pseudoinstruction");
+            let inst = match pseudo_code {
+                PseudoCode::RET => Instruction::ret(),
+                _ => unreachable!(),
+            };
+            inst
+        }
     }
 }
 

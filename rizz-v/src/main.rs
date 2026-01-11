@@ -65,6 +65,7 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                             let result = regs.get(rs1.clone()) << regs.get(rs2.clone());
                             regs.set(rd.clone(), result);
                         }
+                        _ => unreachable!(),
                     }
                     let state = State {
                         step: states.count + 1,
