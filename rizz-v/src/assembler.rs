@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
+use std::num::ParseIntError;
 use std::str::FromStr;
 
+use derive_more::Display as MoreDisplay;
 use pest::iterators::Pair;
 use serde::Serialize;
 use strum_macros::{Display, EnumIter, EnumString};
@@ -10,6 +13,48 @@ use crate::cpu::CPU;
 use crate::instruction::Instruction;
 use crate::reg::{IOpCode, PseudoCode, ROpCode, Register};
 use serde_json;
+
+#[derive(Debug, MoreDisplay)]
+pub enum AsmError {
+    #[display("missing {name}")]
+    Missing { name: &'static str },
+    #[display("invalid register count for {kind} instruction: expected {expected}, found {found}")]
+    InvalidRegisterCount {
+        kind: &'static str,
+        expected: usize,
+        found: usize,
+    },
+    #[display("unknown label: {msg}")]
+    UnknownLabel { msg: String },
+    #[display("parse error: {msg}")]
+    Parse { msg: String },
+    #[display("json error: {err}")]
+    Json { err: serde_json::Error },
+}
+
+impl Error for AsmError {}
+
+impl From<strum::ParseError> for AsmError {
+    fn from(err: strum::ParseError) -> Self {
+        Self::Parse {
+            msg: err.to_string(),
+        }
+    }
+}
+
+impl From<ParseIntError> for AsmError {
+    fn from(err: ParseIntError) -> Self {
+        Self::Parse {
+            msg: err.to_string(),
+        }
+    }
+}
+
+impl From<serde_json::Error> for AsmError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Json { err }
+    }
+}
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Serialize)]
 pub struct Assembler {
