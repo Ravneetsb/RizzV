@@ -2,7 +2,7 @@ use crate::instruction::Instruction;
 use crate::reg::RegFile;
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize, Eq, PartialEq)]
 pub struct State {
     pub step: u8,
     pub reg_file: RegFile,
@@ -19,7 +19,7 @@ impl Default for State {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Eq, PartialEq)]
 pub struct States {
     pub states: Vec<State>,
     pub count: u8,

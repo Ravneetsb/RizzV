@@ -6,9 +6,11 @@ use std::fs;
 use std::str::FromStr;
 pub mod assembler;
 pub mod cpu;
+pub mod executor;
 pub mod instruction;
 pub mod reg;
 pub mod state;
+use executor::Executor;
 use reg::{IOpCode, ROpCode, RegFile, Register};
 use serde_json;
 use state::{State, States};
@@ -17,7 +19,6 @@ use state::{State, States};
 // regs.entry(r).and_modify(|v| *v += 1).or_insert(1);
 
 // TODO FIX COMMENT RULE
-// TODO FIX DIRECTIVE RULE.
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct RizzParser;
@@ -129,5 +130,7 @@ fn main() {
         .next()
         .unwrap();
     asm.assemble(pair);
-    asm.to_json();
+    // asm.to_json();
+    let mut executor = Executor::default();
+    executor.execute(&mut asm);
 }

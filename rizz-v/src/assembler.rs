@@ -3,19 +3,18 @@ use std::str::FromStr;
 
 use pest::iterators::Pair;
 use serde::Serialize;
-use strum::*;
 use strum_macros::{Display, EnumIter, EnumString};
 
 use crate::Rule;
 use crate::cpu::CPU;
-use crate::instruction::{IInst, Instruction, JInst, Memory, RInst};
-use crate::reg::{IOpCode, PseudoCode, ROpCode, RegFile, Register};
+use crate::instruction::Instruction;
+use crate::reg::{IOpCode, PseudoCode, ROpCode, Register};
 use serde_json;
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Serialize)]
 pub struct Assembler {
     program: Vec<Instruction>,
-    cpu: CPU,
+    pc: u64,
     labels: HashMap<String, u64>,
     globals: HashSet<String>,
 }
@@ -32,7 +31,7 @@ impl Assembler {
             Rule::instruction => {
                 let inst = Assembler::create_inst(pair);
                 self.program.push(inst);
-                self.cpu.increment_byte();
+                self.pc += 4;
             }
             Rule::directive => {
                 let mut inner = pair.into_inner();
@@ -47,7 +46,7 @@ impl Assembler {
             Rule::label => {
                 let mut inner = pair.into_inner();
                 let lbl = inner.next().unwrap().as_str().trim().to_string();
-                self.labels.insert(lbl, self.cpu.get_pc());
+                self.labels.insert(lbl, self.pc);
             }
             // _ => todo!("assembler"),
             _ => {
@@ -152,6 +151,14 @@ impl Assembler {
 }
 
 impl Assembler {
+    pub fn iter(&mut self) -> std::slice::IterMut<'_, Instruction> {
+        self.program.iter_mut()
+    }
+
+    pub fn find_label(&mut self, label: String) -> u64 {
+        *self.labels.get(&label).expect("Label not found")
+    }
+
     pub fn to_json(&mut self) {
         let json = serde_json::to_string_pretty(&self.program).unwrap();
         println!("{}", json);
