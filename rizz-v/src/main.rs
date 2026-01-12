@@ -129,7 +129,7 @@ fn main() {
         .expect("oof")
         .next()
         .unwrap();
-    asm.assemble(pair);
+    asm.assemble(pair).expect("Assembly failed");
     // asm.to_json();
     let mut executor = Executor::default();
     executor.execute(&mut asm);

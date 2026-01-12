@@ -5,4 +5,3 @@ sadd4:
     add a0, a0, a2
     add a0, a0, a3
     ret
-    jalr zero, 0(ra)

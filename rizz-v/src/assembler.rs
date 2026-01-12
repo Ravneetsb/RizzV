@@ -70,43 +70,71 @@ pub enum Directive {
     GLOBAL,
 }
 
+fn require_registes<const N: usize>(
+    regs: Vec<Register>,
+    kind: &'static str,
+) -> Result<[Register; N], AsmError> {
+    let found = regs.len();
+    regs.try_into().map_err(|_| AsmError::InvalidRegisterCount {
+        kind,
+        expected: N,
+        found,
+    })
+}
+
 impl Assembler {
-    pub fn assemble(&mut self, pair: Pair<Rule>) {
+    pub fn assemble(&mut self, pair: Pair<Rule>) -> Result<(), AsmError> {
         match pair.as_rule() {
             Rule::instruction => {
-                let inst = Assembler::create_inst(pair);
+                let inst = Assembler::create_inst(pair)?;
                 self.program.push(inst);
                 self.pc += 4;
+                Ok(())
             }
             Rule::directive => {
                 let mut inner = pair.into_inner();
-                let directive = Directive::from_str(inner.next().unwrap().as_str()).unwrap();
-                let label = inner.next().unwrap().as_str();
+                let directive = Directive::from_str(
+                    inner
+                        .next()
+                        .ok_or(AsmError::Missing { name: "directive" })?
+                        .as_str(),
+                )?;
+                let label = inner
+                    .next()
+                    .ok_or(AsmError::Missing { name: "Label" })?
+                    .as_str();
                 match directive {
                     Directive::GLOBAL => {
                         self.globals.insert(label.to_string());
+                        Ok(())
                     }
                 }
             }
             Rule::label => {
                 let mut inner = pair.into_inner();
-                let lbl = inner.next().unwrap().as_str().trim().to_string();
+                let lbl = inner
+                    .next()
+                    .ok_or(AsmError::Missing { name: "Label" })?
+                    .as_str()
+                    .trim()
+                    .to_string();
                 self.labels.insert(lbl, self.pc);
+                Ok(())
             }
-            // _ => todo!("assembler"),
             _ => {
                 for inner in pair.into_inner() {
-                    self.assemble(inner);
+                    self.assemble(inner)?;
                 }
+                Ok(())
             }
         }
     }
 
-    fn create_inst(pair: Pair<Rule>) -> Instruction {
+    fn create_inst(pair: Pair<Rule>) -> Result<Instruction, AsmError> {
         let mut inner = pair.into_inner();
         let op_token = inner
             .next()
-            .expect("Expected Op Token found in instruction!")
+            .ok_or(AsmError::Missing { name: "Op token" })?
             .as_str()
             .trim()
             .to_string();
@@ -117,49 +145,43 @@ impl Assembler {
         if let Some(operands) = ops {
             let inst = match operands.as_rule() {
                 Rule::r_operand => {
-                    let op_code = ROpCode::from_str(&op_token).unwrap();
+                    let op_code = ROpCode::from_str(&op_token)?;
                     let mut registers = operands.into_inner();
                     let regs: Vec<Register> = registers
                         .by_ref()
                         .take(3)
-                        .map(|p| {
-                            Register::from_str(p.as_str().trim())
-                                .expect("Invalid register in R-type Inst")
-                        })
-                        .collect();
+                        .map(|p| Register::from_str(p.as_str().trim()))
+                        .collect::<Result<Vec<_>, _>>()?;
 
-                    let [rd, rs1, rs2] = regs.try_into().expect("Invalid register in R-type Inst");
+                    let [rd, rs1, rs2] = require_registes(regs, "R-type")?;
                     Instruction::r_inst(op_code, rd, rs1, rs2)
                 }
                 Rule::i_operand => {
-                    let op_code = IOpCode::from_str(&op_token).expect("Invalid I-type Inst");
+                    let op_code = IOpCode::from_str(&op_token)?;
                     let mut registers = operands.into_inner();
                     let regs: Vec<Register> = registers
                         .by_ref()
                         .take(2)
-                        .map(|p| {
-                            Register::from_str(p.as_str().trim())
-                                .expect("Invalid register in I-type Inst")
-                        })
-                        .collect();
-                    let [rd, rs] = regs.try_into().unwrap();
-                    let imm_str = registers.next().unwrap().as_str().trim();
-                    let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
+                        .map(|p| Register::from_str(p.as_str().trim()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    let [rd, rs] = require_registes(regs, "I-type")?;
+                    let imm_str = registers
+                        .next()
+                        .ok_or(AsmError::Missing { name: "Immediate" })?
+                        .as_str()
+                        .trim();
+                    let imm: i32 = imm_str.parse()?;
                     Instruction::i_inst(op_code, rd, rs, imm)
                 }
                 Rule::binary_operand => {
-                    let pseudo_code =
-                        PseudoCode::from_str(&op_token).expect("Invalid pseudo-instruction");
+                    let pseudo_code = PseudoCode::from_str(&op_token)?;
                     let mut registers = operands.into_inner();
                     let regs: Vec<Register> = registers
                         .by_ref()
                         .take(2)
-                        .map(|p| {
-                            Register::from_str(p.as_str().trim())
-                                .expect("invalid reg in pseudo-instruction")
-                        })
-                        .collect();
-                    let [rd, rs] = regs.try_into().unwrap();
+                        .map(|p| Register::from_str(p.as_str().trim()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    let [rd, rs] = require_registes(regs, "Binary pseudo")?;
                     let op_code = match pseudo_code {
                         PseudoCode::MV => IOpCode::ADDI,
                         _ => todo!(),
@@ -167,13 +189,20 @@ impl Assembler {
                     Instruction::i_inst(op_code, rd, rs, 0)
                 }
                 Rule::binary_imm_operand => {
-                    let pseudo_code =
-                        PseudoCode::from_str(&op_token).expect("Invalid pseudo-instruction");
+                    let pseudo_code = PseudoCode::from_str(&op_token)?;
                     let mut register = operands.into_inner();
-                    let rd = Register::from_str(register.next().unwrap().as_str())
-                        .expect("Invalid reg in pseudo-instruction");
-                    let imm_str = register.next().unwrap().as_str().trim();
-                    let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
+                    let rd = Register::from_str(
+                        register
+                            .next()
+                            .ok_or(AsmError::Missing { name: "Register" })?
+                            .as_str(),
+                    )?;
+                    let imm_str = register
+                        .next()
+                        .ok_or(AsmError::Missing { name: "Immediate" })?
+                        .as_str()
+                        .trim();
+                    let imm: i32 = imm_str.parse()?;
                     let op_code = match pseudo_code {
                         PseudoCode::LI => IOpCode::ADDI,
                         _ => todo!(),
@@ -182,15 +211,14 @@ impl Assembler {
                 }
                 _ => todo!(),
             };
-            inst
+            Ok(inst)
         } else {
-            let pseudo_code =
-                PseudoCode::from_str(&op_token).expect("Unknown op_code in pseudoinstruction");
+            let pseudo_code = PseudoCode::from_str(&op_token)?;
             let inst = match pseudo_code {
                 PseudoCode::RET => Instruction::ret(),
                 _ => unreachable!(),
             };
-            inst
+            Ok(inst)
         }
     }
 }
@@ -200,8 +228,11 @@ impl Assembler {
         self.program.iter_mut()
     }
 
-    pub fn find_label(&mut self, label: String) -> u64 {
-        *self.labels.get(&label).expect("Label not found")
+    pub fn find_label(&mut self, label: String) -> Result<u64, AsmError> {
+        self.labels
+            .get(&label)
+            .copied()
+            .ok_or(AsmError::UnknownLabel { msg: label })
     }
 
     pub fn to_json(&mut self) {

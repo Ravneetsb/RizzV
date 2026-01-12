@@ -1,4 +1,4 @@
-program = {line+}
+program = {line+ ~ EOI}
 line = {directive? ~ label? ~ instruction? ~ NEWLINE+}
 directive = ${"." ~ ident ~ WHITESPACE+ ~ ident}
 label = {ident ~ ":"}
