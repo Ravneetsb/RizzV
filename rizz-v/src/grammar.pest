@@ -1,5 +1,6 @@
 program = {line+}
-line = {label? ~ instruction? ~ NEWLINE+}
+line = {directive? ~ label? ~ instruction? ~ NEWLINE+}
+directive = ${"." ~ ident ~ WHITESPACE+ ~ ident}
 label = {ident ~ ":"}
 ident = {(ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*}
 instruction = {cmd ~ operands?}

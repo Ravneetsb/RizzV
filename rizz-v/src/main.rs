@@ -17,6 +17,7 @@ use state::{State, States};
 // regs.entry(r).and_modify(|v| *v += 1).or_insert(1);
 
 // TODO FIX COMMENT RULE
+// TODO FIX DIRECTIVE RULE.
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct RizzParser;
@@ -104,7 +105,6 @@ fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
                     }
                 }
                 Rule::binary_operand => {
-                    // let op_code =
                     todo!("mv")
                 }
                 Rule::binary_imm_operand => {

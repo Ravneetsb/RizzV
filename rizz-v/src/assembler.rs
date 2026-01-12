@@ -1,8 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 use pest::iterators::Pair;
 use serde::Serialize;
+use strum::*;
+use strum_macros::{Display, EnumIter, EnumString};
 
 use crate::Rule;
 use crate::cpu::CPU;
@@ -15,6 +17,13 @@ pub struct Assembler {
     program: Vec<Instruction>,
     cpu: CPU,
     labels: HashMap<String, u64>,
+    globals: HashSet<String>,
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum Directive {
+    GLOBAL,
 }
 
 impl Assembler {
@@ -24,6 +33,16 @@ impl Assembler {
                 let inst = Assembler::create_inst(pair);
                 self.program.push(inst);
                 self.cpu.increment_byte();
+            }
+            Rule::directive => {
+                let mut inner = pair.into_inner();
+                let directive = Directive::from_str(inner.next().unwrap().as_str()).unwrap();
+                let label = inner.next().unwrap().as_str();
+                match directive {
+                    Directive::GLOBAL => {
+                        self.globals.insert(label.to_string());
+                    }
+                }
             }
             Rule::label => {
                 let mut inner = pair.into_inner();
@@ -66,12 +85,7 @@ impl Assembler {
                         .collect();
 
                     let [rd, rs1, rs2] = regs.try_into().expect("Invalid register in R-type Inst");
-                    Instruction::R(RInst {
-                        op_code,
-                        rd,
-                        rs1,
-                        rs2,
-                    })
+                    Instruction::r_inst(op_code, rd, rs1, rs2)
                 }
                 Rule::i_operand => {
                     let op_code = IOpCode::from_str(&op_token).expect("Invalid I-type Inst");
@@ -87,12 +101,7 @@ impl Assembler {
                     let [rd, rs] = regs.try_into().unwrap();
                     let imm_str = registers.next().unwrap().as_str().trim();
                     let imm: i32 = imm_str.parse().expect("Invalid immediate in I-type Inst");
-                    Instruction::I(IInst {
-                        op_code,
-                        rd,
-                        rs,
-                        imm,
-                    })
+                    Instruction::i_inst(op_code, rd, rs, imm)
                 }
                 Rule::binary_operand => {
                     let pseudo_code =
@@ -111,12 +120,7 @@ impl Assembler {
                         PseudoCode::MV => IOpCode::ADDI,
                         _ => todo!(),
                     };
-                    Instruction::I(IInst {
-                        op_code,
-                        rd,
-                        rs,
-                        imm: 0,
-                    })
+                    Instruction::i_inst(op_code, rd, rs, 0)
                 }
                 Rule::binary_imm_operand => {
                     let pseudo_code =
@@ -130,12 +134,7 @@ impl Assembler {
                         PseudoCode::LI => IOpCode::ADDI,
                         _ => todo!(),
                     };
-                    Instruction::I(IInst {
-                        op_code,
-                        rd,
-                        rs: Register::Zero,
-                        imm,
-                    })
+                    Instruction::i_inst(op_code, rd, Register::Zero, imm)
                 }
                 _ => todo!(),
             };

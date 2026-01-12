@@ -16,6 +16,28 @@ impl Default for Instruction {
 }
 
 impl Instruction {
+    pub fn r_inst(op_code: ROpCode, rd: Register, rs1: Register, rs2: Register) -> Self {
+        Instruction::R(RInst {
+            op_code,
+            rd,
+            rs1,
+            rs2,
+        })
+    }
+
+    pub fn i_inst(op_code: IOpCode, rd: Register, rs: Register, imm: i32) -> Self {
+        Instruction::I(IInst {
+            op_code,
+            rd,
+            rs,
+            imm,
+        })
+    }
+
+    pub fn nil() -> Self {
+        Instruction::Nil
+    }
+
     pub fn ret() -> Self {
         Instruction::J(JInst {
             op_code: JOpCode::JALR,
