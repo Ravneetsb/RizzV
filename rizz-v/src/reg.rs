@@ -4,7 +4,7 @@ use std::collections::HashMap as Map;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
-#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
 pub enum Register {
@@ -59,7 +59,7 @@ impl File for RegFile {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum ROpCode {
     ADD,
@@ -69,7 +69,7 @@ pub enum ROpCode {
     SLL,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum IOpCode {
     ADDI,

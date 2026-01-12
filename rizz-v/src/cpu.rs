@@ -1,4 +1,4 @@
-use crate::reg::RegFile;
+use crate::reg::{File, RegFile, Register};
 use serde::Serialize;
 
 #[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
@@ -21,5 +21,15 @@ impl CPU {
 
     pub fn next_byte(&mut self) -> u64 {
         self.pc + 4
+    }
+}
+
+impl CPU {
+    pub fn get_reg_value(&mut self, r: Register) -> i64 {
+        self.regs.get(r)
+    }
+
+    pub fn set_reg_value(&mut self, r: Register, v: i64) {
+        self.regs.set(r, v);
     }
 }

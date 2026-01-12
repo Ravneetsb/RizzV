@@ -22,107 +22,107 @@ use state::{State, States};
 #[grammar = "grammar.pest"]
 pub struct RizzParser;
 
-fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
-    match pair.as_rule() {
-        Rule::label => {
-            println!("Found a label!");
-            let mut inner = pair.into_inner();
-            let lbl = inner.next().unwrap().as_str().trim().to_string();
-            println!("{}", lbl);
-        }
-        Rule::instruction => {
-            let mut inner = pair.into_inner();
-            let op_token = inner.next().unwrap().as_str().trim().to_string();
-            let operands = inner.next().unwrap().into_inner().next().unwrap();
-            // println!("{:?}", operands);
-            match operands.as_rule() {
-                Rule::r_operand => {
-                    let op_code = ROpCode::from_str(&op_token).unwrap();
-                    let mut registers = operands.into_inner();
-                    // registers = registers.next().unwrap().into_inner();
-
-                    let rd = Register::from_str(registers.next().unwrap().as_str()).unwrap();
-                    let rs1 = Register::from_str(registers.next().unwrap().as_str()).unwrap();
-                    let rs2 = Register::from_str(registers.next().unwrap().as_str())
-                        .expect("Did not find the variant for rs2");
-                    match op_code {
-                        ROpCode::ADD => {
-                            let sum = regs.get(rs1.clone()) + regs.get(rs2.clone());
-                            regs.set(rd.clone(), sum);
-                        }
-                        ROpCode::SUB => {
-                            let result = regs.get(rs1.clone()) - regs.get(rs2.clone());
-                            regs.set(rd.clone(), result);
-                        }
-                        ROpCode::MUL => {
-                            let result = regs.get(rs1.clone()) * regs.get(rs2.clone());
-                            regs.set(rd.clone(), result);
-                        }
-                        ROpCode::DIV => {
-                            let result = regs.get(rs1.clone()) / regs.get(rs2.clone());
-                            regs.set(rd.clone(), result);
-                        }
-                        ROpCode::SLL => {
-                            let result = regs.get(rs1.clone()) << regs.get(rs2.clone());
-                            regs.set(rd.clone(), result);
-                        }
-                    }
-                    let state = State {
-                        step: states.count + 1,
-                        reg_file: regs.clone(),
-                        instr: Instruction::R(RInst {
-                            op_code: op_code.clone(),
-                            rd: rd.clone(),
-                            rs1: rs1.clone(),
-                            rs2: rs2.clone(),
-                        }),
-                    };
-                    states.add(state);
-                }
-                Rule::i_operand => {
-                    let op_code = IOpCode::from_str(&op_token).unwrap();
-                    let mut it = operands.into_inner();
-                    let rd = Register::from_str(it.next().unwrap().as_str()).unwrap();
-                    let rs = Register::from_str(it.next().unwrap().as_str()).unwrap();
-                    // println!("{:?}", it);
-                    let imm_str = it.next().unwrap().as_str().trim();
-                    let imm: i32 = imm_str.parse().unwrap();
-                    match op_code {
-                        IOpCode::ADDI => {
-                            regs.set(rd.clone(), regs.get(rs.clone()) + imm as i64);
-
-                            states.add(State {
-                                step: states.count + 1,
-                                reg_file: regs.clone(),
-                                instr: Instruction::I(IInst {
-                                    op_code,
-                                    rd,
-                                    rs,
-                                    imm,
-                                }),
-                            });
-                        }
-                    }
-                }
-                Rule::binary_operand => {
-                    todo!("mv")
-                }
-                Rule::binary_imm_operand => {
-                    todo!("li")
-                }
-                _ => todo!(),
-            }
-        }
-        _ => {
-            for inner in pair.into_inner() {
-                run(inner, regs, states);
-            }
-        }
-    }
-}
+// fn run(pair: Pair<Rule>, regs: &mut RegFile, states: &mut States) {
+//     match pair.as_rule() {
+//         Rule::label => {
+//             println!("Found a label!");
+//             let mut inner = pair.into_inner();
+//             let lbl = inner.next().unwrap().as_str().trim().to_string();
+//             println!("{}", lbl);
+//         }
+//         Rule::instruction => {
+//             let mut inner = pair.into_inner();
+//             let op_token = inner.next().unwrap().as_str().trim().to_string();
+//             let operands = inner.next().unwrap().into_inner().next().unwrap();
+//             // println!("{:?}", operands);
+//             match operands.as_rule() {
+//                 Rule::r_operand => {
+//                     let op_code = ROpCode::from_str(&op_token).unwrap();
+//                     let mut registers = operands.into_inner();
+//                     // registers = registers.next().unwrap().into_inner();
+//
+//                     let rd = Register::from_str(registers.next().unwrap().as_str()).unwrap();
+//                     let rs1 = Register::from_str(registers.next().unwrap().as_str()).unwrap();
+//                     let rs2 = Register::from_str(registers.next().unwrap().as_str())
+//                         .expect("Did not find the variant for rs2");
+//                     match op_code {
+//                         ROpCode::ADD => {
+//                             let sum = regs.get(rs1.clone()) + regs.get(rs2.clone());
+//                             regs.set(rd.clone(), sum);
+//                         }
+//                         ROpCode::SUB => {
+//                             let result = regs.get(rs1.clone()) - regs.get(rs2.clone());
+//                             regs.set(rd.clone(), result);
+//                         }
+//                         ROpCode::MUL => {
+//                             let result = regs.get(rs1.clone()) * regs.get(rs2.clone());
+//                             regs.set(rd.clone(), result);
+//                         }
+//                         ROpCode::DIV => {
+//                             let result = regs.get(rs1.clone()) / regs.get(rs2.clone());
+//                             regs.set(rd.clone(), result);
+//                         }
+//                         ROpCode::SLL => {
+//                             let result = regs.get(rs1.clone()) << regs.get(rs2.clone());
+//                             regs.set(rd.clone(), result);
+//                         }
+//                     }
+//                     let state = State {
+//                         step: states.count + 1,
+//                         reg_file: regs.clone(),
+//                         instr: Instruction::R(RInst {
+//                             op_code: op_code.clone(),
+//                             rd: rd.clone(),
+//                             rs1: rs1.clone(),
+//                             rs2: rs2.clone(),
+//                         }),
+//                     };
+//                     states.add(state);
+//                 }
+//                 Rule::i_operand => {
+//                     let op_code = IOpCode::from_str(&op_token).unwrap();
+//                     let mut it = operands.into_inner();
+//                     let rd = Register::from_str(it.next().unwrap().as_str()).unwrap();
+//                     let rs = Register::from_str(it.next().unwrap().as_str()).unwrap();
+//                     // println!("{:?}", it);
+//                     let imm_str = it.next().unwrap().as_str().trim();
+//                     let imm: i32 = imm_str.parse().unwrap();
+//                     match op_code {
+//                         IOpCode::ADDI => {
+//                             regs.set(rd.clone(), regs.get(rs.clone()) + imm);
+//
+//                             states.add(State {
+//                                 step: states.count + 1,
+//                                 reg_file: regs.clone(),
+//                                 instr: Instruction::I(IInst {
+//                                     op_code,
+//                                     rd,
+//                                     rs,
+//                                     imm,
+//                                 }),
+//                             });
+//                         }
+//                     }
+//                 }
+//                 Rule::binary_operand => {
+//                     todo!("mv")
+//                 }
+//                 Rule::binary_imm_operand => {
+//                     todo!("li")
+//                 }
+//                 _ => todo!(),
+//             }
+//         }
+//         _ => {
+//             for inner in pair.into_inner() {
+//                 run(inner, regs, states);
+//             }
+//         }
+//     }
+// }
 
 fn main() {
-    let input = fs::read_to_string("itest.s").unwrap();
+    let input = fs::read_to_string("test.s").unwrap();
     let mut asm = assembler::Assembler::default();
     let pair = RizzParser::parse(Rule::program, &input)
         .expect("oof")
@@ -131,5 +131,6 @@ fn main() {
     asm.assemble(pair).expect("Assembly failed");
     // asm.to_json();
     let mut executor = Executor::default();
-    executor.execute(&mut asm);
+    executor.execute(&mut asm).expect("Execution failed");
+    executor.to_json();
 }
