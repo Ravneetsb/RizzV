@@ -18,7 +18,6 @@ use state::{State, States};
 //  NOTE The correct way to update a map
 // regs.entry(r).and_modify(|v| *v += 1).or_insert(1);
 
-// TODO FIX COMMENT RULE
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct RizzParser;

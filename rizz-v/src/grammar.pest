@@ -12,8 +12,9 @@ r_operand = { register ~ "," ~ register ~ "," ~ register }
 i_operand = { register ~ "," ~ register ~ "," ~ operand_imm }
 binary_operand = {register ~ "," ~ register}
 binary_imm_operand = {register ~ "," ~ operand_imm}
-register = {( reg_type ~ ASCII_DIGIT{1, 2} ) | "fp" | "ra"}
+register = @{( reg_type ~ ASCII_DIGIT{1, 2} ) | "fp" | "ra"}
 reg_type = {"s" | "t" | "a"}
 WHITESPACE = _{" " | "\t"}
 NEWLINE = {"\n" | "\r\n" | "\r"}
-COMMENT = _{"#" ~ ASCII_ALPHANUMERIC* ~ NEWLINE}
+COMMENT = _{"#" ~ (!NEWLINE ~ ANY)* }
+
