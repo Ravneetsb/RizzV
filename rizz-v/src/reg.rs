@@ -1,7 +1,4 @@
-use core::error;
 use serde::Serialize;
-use std::collections::HashMap as Map;
-use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
 #[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
@@ -10,9 +7,12 @@ use strum_macros::{Display, EnumIter, EnumString};
 pub enum Register {
     Zero = 0,
     RA = 1,
+    SP = 2,
     T0 = 5,
     T1 = 6,
     T2 = 7,
+    S0 = 8,
+    S1 = 9,
     A0 = 10,
     A1 = 11,
     A2 = 12,
@@ -21,6 +21,16 @@ pub enum Register {
     A5 = 15,
     A6 = 16,
     A7 = 17,
+    S2 = 18,
+    S3 = 19,
+    S4 = 20,
+    S5 = 21,
+    S6 = 22,
+    S7 = 23,
+    S8 = 24,
+    S9 = 25,
+    S10 = 26,
+    S11 = 27,
     T3 = 28,
     T4 = 29,
     T5 = 30,
@@ -41,7 +51,6 @@ pub struct RegFile {
 
 pub trait File {
     fn get(&self, r: Register) -> i64;
-
     fn set(&mut self, r: Register, v: i64);
 }
 
@@ -51,11 +60,11 @@ impl File for RegFile {
     }
 
     fn set(&mut self, r: Register, v: i64) {
-        let i = r.index();
-        if i == 0 {
-            panic!("Cannot assign value to Zero register");
+        let index = r.index();
+        if index == 0 {
+            return;
         }
-        self.regs[i] = v;
+        self.regs[index] = v;
     }
 }
 
@@ -75,9 +84,41 @@ pub enum IOpCode {
     ADDI,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum LoadOpCode {
+    LB,
+    LBU,
+    LH,
+    LHU,
+    LW,
+    LD,
+}
+
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum StoreOpCode {
+    SB,
+    SH,
+    SW,
+    SD,
+}
+
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
+#[strum(serialize_all = "lowercase")]
+pub enum BOpCode {
+    BEQ,
+    BNE,
+    BLT,
+    BGE,
+    BLTU,
+    BGEU,
+}
+
+#[derive(Copy, Debug, Eq, PartialEq, Hash, EnumIter, EnumString, Display, Serialize, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum JOpCode {
+    JAL,
     JALR,
 }
 
