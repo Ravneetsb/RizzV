@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rizz-V Trace Viz</title>
+  <style>
+    :root {
+      --bg: #f3efe4;
+      --panel: rgba(255, 250, 240, 0.94);
+      --panel-strong: #fffdf8;
+      --ink: #1f1d1a;
+      --muted: #6b655c;
+      --line: #d7cdbc;
+      --accent: #b44f2c;
+      --accent-soft: rgba(180, 79, 44, 0.12);
+      --lhs: #dcecff;
+      --rhs: #efe3ff;
+      --dst: #ddf7e0;
+      --changed: #fff0b8;
+      --taken: #d7f3de;
+      --halt: #f8d7d7;
+      --loop: #f5e1bb;
+      --shadow: 0 16px 40px rgba(74, 53, 24, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      background:
+        radial-gradient(circle at top left, rgba(210, 124, 52, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(82, 117, 160, 0.16), transparent 24%),
+        linear-gradient(180deg, #f7f1e7 0%, var(--bg) 100%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(249, 241, 225, 0.92));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 24px 26px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      max-width: 72ch;
+      line-height: 1.4;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .file-group,
+    .playback-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .playback-group {
+      margin-left: auto;
+    }
+
+    .statline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .run-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
+      align-items: start;
+    }
+
+    .request-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.15fr);
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .main-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.45fr);
+      align-items: start;
+    }
+
+    .analysis-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.25fr);
+      align-items: start;
+    }
+
+    .analysis-stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .secondary-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.25fr);
+      align-items: start;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .request-input-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .result-config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .meta-item {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(215, 205, 188, 0.9);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .meta-item strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    .result-value {
+      font-size: 22px;
+      line-height: 1.35;
+      margin-top: 8px;
+    }
+
+    .result-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .instr-line {
+      margin-top: 8px;
+      font-size: 22px;
+      line-height: 1.35;
+    }
+
+    code,
+    .pill {
+      background: rgba(34, 31, 27, 0.06);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(31, 29, 26, 0.08);
+    }
+
+    .pill.taken {
+      background: var(--taken);
+    }
+
+    .pill.halt {
+      background: var(--halt);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .legend .pill {
+      padding-inline: 12px;
+    }
+
+    .json-panel {
+      background: rgba(31, 29, 26, 0.03);
+      border-radius: 16px;
+      padding: 12px;
+      max-height: 220px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .details {
+      margin-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .regs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .reg {
+      border: 1px solid rgba(215, 205, 188, 0.95);
+      border-radius: 16px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.74);
+      min-height: 78px;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    .reg.changed {
+      background: var(--changed);
+      transform: translateY(-1px);
+    }
+
+    .reg.role-lhs {
+      background: var(--lhs);
+    }
+
+    .reg.role-rhs {
+      background: var(--rhs);
+    }
+
+    .reg.role-dst {
+      background: var(--dst);
+    }
+
+    .reg.role-lhs.role-dst {
+      background: linear-gradient(135deg, var(--lhs) 0%, var(--lhs) 50%, var(--dst) 50%, var(--dst) 100%);
+    }
+
+    .reg.role-lhs.role-rhs {
+      background: linear-gradient(135deg, var(--lhs) 0%, var(--lhs) 50%, var(--rhs) 50%, var(--rhs) 100%);
+    }
+
+    .reg.role-rhs.role-dst {
+      background: linear-gradient(135deg, var(--rhs) 0%, var(--rhs) 50%, var(--dst) 50%, var(--dst) 100%);
+    }
+
+    .reg.role-lhs.role-rhs.role-dst {
+      background: repeating-linear-gradient(135deg, var(--lhs) 0px, var(--lhs) 12px, var(--rhs) 12px, var(--rhs) 24px, var(--dst) 24px, var(--dst) 36px);
+    }
+
+    .reg-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .reg-value {
+      margin-top: 10px;
+      font-size: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .block-list,
+    .loop-list,
+    .edge-list,
+    .memory-list,
+    .input-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .block,
+    .loop,
+    .edge,
+    .memory-event,
+    .input-reg {
+      border: 1px solid rgba(215, 205, 188, 0.95);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.68);
+      padding: 12px;
+    }
+
+    .block.active {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(180, 79, 44, 0.18);
+      background: rgba(255, 239, 229, 0.8);
+    }
+
+    .loop {
+      background: var(--loop);
+    }
+
+    .memory-event.load {
+      background: rgba(220, 236, 255, 0.72);
+    }
+
+    .memory-event.store {
+      background: rgba(221, 247, 224, 0.72);
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    input[type="text"] {
+      font: inherit;
+    }
+
+    .text-input {
+      width: 100%;
+      border: 1px solid rgba(31, 29, 26, 0.12);
+      background: var(--panel-strong);
+      color: var(--ink);
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 22px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: #8f2a18;
+    }
+
+    input[type="range"] {
+      width: 220px;
+      accent-color: var(--accent);
+    }
+
+    button {
+      font: inherit;
+      border: 1px solid rgba(31, 29, 26, 0.12);
+      background: var(--panel-strong);
+      color: var(--ink);
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 1100px) {
+      .main-grid,
+      .run-grid,
+      .request-grid,
+      .analysis-grid,
+      .secondary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .playback-group {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+
+      .regs-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <section class="hero">
+      <h1>Rizz-V Trace Visualizer</h1>
+      <p>Load a runtime trace and, optionally, the CFG analysis output. The view tracks register mutation, memory activity, control-flow steps, active basic blocks, and loop headers so stack-heavy assembly is readable instead of opaque.</p>
+    </section>
+
+    <section class="controls">
+      <div class="file-group">
+        <label class="pill">Source File <input type="file" id="sourceFileInput" accept=".s,text/plain" /></label>
+        <label class="pill">Trace JSON <input type="file" id="traceInput" accept="application/json" /></label>
+        <label class="pill">Analysis JSON <input type="file" id="analysisInput" accept="application/json" /></label>
+      </div>
+
+      <div class="playback-group">
+        <button id="prevBtn">Prev</button>
+        <button id="nextBtn">Next</button>
+        <button id="playBtn">Play</button>
+        <span class="pill">Step <input id="stepSlider" type="range" min="0" max="0" value="0" /></span>
+        <span id="stepLabel" class="pill">0 / 0</span>
+        <span class="pill">Speed <input id="speedInput" type="number" value="400" min="50" step="50" style="width: 86px" /> ms</span>
+      </div>
+    </section>
+
+    <section class="request-grid">
+      <div class="card">
+        <div class="card-title">
+          <h2>Run Program</h2>
+          <span id="sourceName" class="small">No source file selected.</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="label">Execution</div>
+            <strong><button id="runBtn" type="button">Run Uploaded Source</button></strong>
+          </div>
+          <div class="meta-item">
+            <div class="label">Max Steps</div>
+            <strong><input id="execMaxSteps" class="text-input" type="number" value="10000" min="1" step="1" /></strong>
+          </div>
+        </div>
+        <div id="serverStatus" class="status">Upload an assembly file, set inputs if needed, and run it through the local service.</div>
+        <div class="card-title" style="margin-top: 16px;">
+          <h2>Result Interpretation</h2>
+          <span class="small">Defaults to scalar <code>a0</code>.</span>
+        </div>
+        <div class="result-config-grid">
+          <label>Kind
+            <select id="resultKind" class="text-input">
+              <option value="scalar">Scalar</option>
+              <option value="array">Array</option>
+            </select>
+          </label>
+          <label data-result-field="scalar-register">Register
+            <input id="resultRegister" class="text-input" type="text" value="a0" />
+          </label>
+          <label data-result-field="array-ptr" hidden>Pointer Register
+            <input id="resultPtrRegister" class="text-input" type="text" value="a0" />
+          </label>
+          <label data-result-field="array-len" hidden>Length Register
+            <input id="resultLengthRegister" class="text-input" type="text" value="a1" />
+          </label>
+          <label data-result-field="array-width" hidden>Element Width
+            <select id="resultElemWidth" class="text-input">
+              <option value="1">1 byte</option>
+              <option value="2">2 bytes</option>
+              <option value="4" selected>4 bytes</option>
+              <option value="8">8 bytes</option>
+            </select>
+          </label>
+          <label data-result-field="array-signed" hidden>Signed Elements
+            <select id="resultSigned" class="text-input">
+              <option value="true" selected>Signed</option>
+              <option value="false">Unsigned</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h2>Register Inputs</h2>
+          <span class="small">Blank values are ignored.</span>
+        </div>
+        <div class="request-input-grid">
+          <label>a0 <input class="text-input" data-reg-input="a0" type="text" /></label>
+          <label>a1 <input class="text-input" data-reg-input="a1" type="text" /></label>
+          <label>a2 <input class="text-input" data-reg-input="a2" type="text" /></label>
+          <label>a3 <input class="text-input" data-reg-input="a3" type="text" /></label>
+          <label>a4 <input class="text-input" data-reg-input="a4" type="text" /></label>
+          <label>a5 <input class="text-input" data-reg-input="a5" type="text" /></label>
+          <label>a6 <input class="text-input" data-reg-input="a6" type="text" /></label>
+          <label>a7 <input class="text-input" data-reg-input="a7" type="text" /></label>
+          <label>sp <input class="text-input" data-reg-input="sp" type="text" /></label>
+          <label>ra <input class="text-input" data-reg-input="ra" type="text" /></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="statline">
+      <div class="card">
+        <div class="label">Current PC</div>
+        <div class="metric" id="pcMetric">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Next PC</div>
+        <div class="metric" id="nextPcMetric">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Active Block</div>
+        <div class="metric" id="blockMetric">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Loop Header</div>
+        <div class="metric" id="loopMetric">-</div>
+      </div>
+    </section>
+
+    <section class="run-grid">
+      <div class="card">
+        <div class="card-title">
+          <h2>Run Setup</h2>
+          <span id="runMeta" class="small">Load a trace to inspect inputs.</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="label">Entry Label</div>
+            <strong id="entryLabelMetric">-</strong>
+          </div>
+          <div class="meta-item">
+            <div class="label">Entry PC</div>
+            <strong id="entryPcMetric">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h2>Input Registers</h2>
+          <span class="small">Values provided at startup.</span>
+        </div>
+        <div id="inputRegsContainer" class="input-list">
+          <div class="empty">No explicit input registers.</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="card">
+        <div class="card-title">
+          <h2>Final Result</h2>
+          <span id="resultMeta" class="small">Run through the local service to decode the final return value.</span>
+        </div>
+        <div id="resultSummary" class="result-value"><span class="empty">No interpreted result available.</span></div>
+        <div id="resultDetails" class="result-list"></div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="card">
+        <div>
+          <div class="card-title">
+            <h2>Instruction</h2>
+            <div id="statusPills"></div>
+          </div>
+          <div id="instrLine" class="instr-line"><span class="empty">Load a trace to begin.</span></div>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <div class="label">Step</div>
+              <strong id="stepMetric">-</strong>
+            </div>
+            <div class="meta-item">
+              <div class="label">Branch</div>
+              <strong id="branchMetric">-</strong>
+            </div>
+            <div class="meta-item">
+              <div class="label">PC Delta</div>
+              <strong id="deltaMetric">-</strong>
+            </div>
+          </div>
+          <div class="legend">
+            <span class="pill" style="background: var(--lhs)">lhs</span>
+            <span class="pill" style="background: var(--rhs)">rhs</span>
+            <span class="pill" style="background: var(--dst)">dest</span>
+            <span class="pill" style="background: var(--changed)">changed</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h2>Registers</h2>
+          <span class="small">Roles are inferred from the current instruction.</span>
+        </div>
+        <div id="regsContainer" class="regs-grid"></div>
+      </div>
+    </section>
+
+    <section class="secondary-grid">
+      <div class="card">
+        <div class="card-title">
+          <h2>Memory Activity</h2>
+          <span id="memoryMeta" class="small">Per-step load/store events.</span>
+        </div>
+        <div id="memoryContainer" class="memory-list">
+          <div class="empty">No memory access in this step.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h2>State JSON</h2>
+          <span class="small">Executed state</span>
+        </div>
+        <pre id="stateJson" class="json-panel"></pre>
+      </div>
+    </section>
+
+    <section class="analysis-grid">
+      <div class="card">
+        <div class="card-title">
+          <h2>Loops</h2>
+          <span id="analysisMeta" class="small">Load analysis JSON for CFG context.</span>
+        </div>
+        <div id="loopsContainer" class="loop-list">
+          <div class="empty">No loops detected or no analysis loaded.</div>
+        </div>
+      </div>
+
+      <div class="analysis-stack">
+        <div class="card">
+          <div class="card-title">
+            <h2>Basic Blocks</h2>
+            <span class="small">Active block tracks the current PC.</span>
+          </div>
+          <div id="blocksContainer" class="block-list">
+            <div class="empty">No CFG loaded.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h2>Edges</h2>
+            <span class="small">Outgoing CFG edges for the active block</span>
+          </div>
+          <div id="edgesContainer" class="edge-list">
+            <div class="empty">No active block.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const ABI = [
+      "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+      "s0/fp", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+      "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+      "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+    ];
+
+    const REG_TO_X = {
+      ZERO: 0, RA: 1, SP: 2, GP: 3, TP: 4, T0: 5, T1: 6, T2: 7,
+      S0: 8, FP: 8, S1: 9, A0: 10, A1: 11, A2: 12, A3: 13, A4: 14,
+      A5: 15, A6: 16, A7: 17, S2: 18, S3: 19, S4: 20, S5: 21, S6: 22,
+      S7: 23, S8: 24, S9: 25, S10: 26, S11: 27, T3: 28, T4: 29, T5: 30, T6: 31,
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    const traceInput = el("traceInput");
+    const analysisInput = el("analysisInput");
+    const sourceFileInput = el("sourceFileInput");
+    const prevBtn = el("prevBtn");
+    const nextBtn = el("nextBtn");
+    const playBtn = el("playBtn");
+    const stepSlider = el("stepSlider");
+    const stepLabel = el("stepLabel");
+    const speedInput = el("speedInput");
+    const runBtn = el("runBtn");
+    const execMaxSteps = el("execMaxSteps");
+    const sourceName = el("sourceName");
+    const serverStatus = el("serverStatus");
+    const resultKind = el("resultKind");
+    const resultRegister = el("resultRegister");
+    const resultPtrRegister = el("resultPtrRegister");
+    const resultLengthRegister = el("resultLengthRegister");
+    const resultElemWidth = el("resultElemWidth");
+    const resultSigned = el("resultSigned");
+
+    const instrLine = el("instrLine");
+    const stateJson = el("stateJson");
+    const statusPills = el("statusPills");
+    const regsContainer = el("regsContainer");
+    const memoryContainer = el("memoryContainer");
+    const memoryMeta = el("memoryMeta");
+    const runMeta = el("runMeta");
+    const entryLabelMetric = el("entryLabelMetric");
+    const entryPcMetric = el("entryPcMetric");
+    const inputRegsContainer = el("inputRegsContainer");
+    const resultMeta = el("resultMeta");
+    const resultSummary = el("resultSummary");
+    const resultDetails = el("resultDetails");
+
+    const pcMetric = el("pcMetric");
+    const nextPcMetric = el("nextPcMetric");
+    const blockMetric = el("blockMetric");
+    const loopMetric = el("loopMetric");
+    const stepMetric = el("stepMetric");
+    const branchMetric = el("branchMetric");
+    const deltaMetric = el("deltaMetric");
+
+    const analysisMeta = el("analysisMeta");
+    const blocksContainer = el("blocksContainer");
+    const loopsContainer = el("loopsContainer");
+    const edgesContainer = el("edgesContainer");
+
+    let trace = null;
+    let analysis = null;
+    let result = null;
+    let idx = 0;
+    let timer = null;
+    let sourceText = "";
+
+    function regNameToIndex(regName) {
+      if (typeof regName !== "string") return null;
+      return Object.prototype.hasOwnProperty.call(REG_TO_X, regName) ? REG_TO_X[regName] : null;
+    }
+
+    function normalizeInstruction(instr) {
+      if (typeof instr === "string") return { kind: instr, data: null };
+      if (instr && typeof instr === "object") {
+        const keys = Object.keys(instr);
+        if (keys.length === 1) {
+          const kind = keys[0];
+          return { kind, data: instr[kind] };
+        }
+      }
+      return { kind: "Unknown", data: instr };
+    }
+
+    function formatRegisterName(reg) {
+      return typeof reg === "string" ? reg.toLowerCase() : "?";
+    }
+
+    function formatTarget(target) {
+      if (!target || typeof target !== "object") return "?";
+      if (Object.prototype.hasOwnProperty.call(target, "Address")) return `@${target.Address}`;
+      if (Object.prototype.hasOwnProperty.call(target, "Label")) return target.Label;
+      return "?";
+    }
+
+    function formatJumpTarget(target) {
+      if (!target || typeof target !== "object") return "?";
+      if (Object.prototype.hasOwnProperty.call(target, "Direct")) return formatTarget(target.Direct);
+      if (Object.prototype.hasOwnProperty.call(target, "Indirect")) {
+        const m = target.Indirect || {};
+        return `${m.offset ?? 0}(${m.register ?? "?"})`;
+      }
+      return "?";
+    }
+
+    function formatInstr(instr) {
+      const n = normalizeInstruction(instr);
+      const data = n.data || {};
+
+      if (n.kind === "Nil") return "Nil";
+      if (n.kind === "R") return `${data.op_code} ${data.rd}, ${data.rs1}, ${data.rs2}`;
+      if (n.kind === "I") return `${data.op_code} ${data.rd}, ${data.rs}, ${data.imm}`;
+      if (n.kind === "L") return `${data.op_code} ${data.rd}, ${data.address.offset}(${data.address.register})`;
+      if (n.kind === "S") return `${data.op_code} ${data.rs}, ${data.address.offset}(${data.address.register})`;
+      if (n.kind === "B") return `${data.op_code} ${data.rs1}, ${data.rs2}, ${formatTarget(data.target)}`;
+      if (n.kind === "J") return `${data.op_code} ${data.rd}, ${formatJumpTarget(data.target)}`;
+
+      return JSON.stringify(instr);
+    }
+
+    function computeChangedRegs(prevRegs, curRegs) {
+      if (!prevRegs || !curRegs) return new Set();
+      const changed = new Set();
+      for (let i = 0; i < curRegs.length; i++) {
+        if (curRegs[i] !== prevRegs[i]) changed.add(i);
+      }
+      return changed;
+    }
+
+    function computeOperandRoles(instr) {
+      const n = normalizeInstruction(instr);
+      const data = n.data || {};
+
+      if (n.kind === "R") {
+        return {
+          lhs: regNameToIndex(data.rs1),
+          rhs: regNameToIndex(data.rs2),
+          dst: regNameToIndex(data.rd),
+        };
+      }
+
+      if (n.kind === "I") {
+        return {
+          lhs: regNameToIndex(data.rs),
+          rhs: null,
+          dst: regNameToIndex(data.rd),
+        };
+      }
+
+      if (n.kind === "B") {
+        return {
+          lhs: regNameToIndex(data.rs1),
+          rhs: regNameToIndex(data.rs2),
+          dst: null,
+        };
+      }
+
+      if (n.kind === "L") {
+        return {
+          lhs: regNameToIndex(data.address?.register),
+          rhs: null,
+          dst: regNameToIndex(data.rd),
+        };
+      }
+
+      if (n.kind === "S") {
+        return {
+          lhs: regNameToIndex(data.address?.register),
+          rhs: regNameToIndex(data.rs),
+          dst: null,
+        };
+      }
+
+      if (n.kind === "J") {
+        const indirect = data.target && data.target.Indirect ? regNameToIndex(data.target.Indirect.register) : null;
+        return {
+          lhs: indirect,
+          rhs: null,
+          dst: regNameToIndex(data.rd),
+        };
+      }
+
+      return { lhs: null, rhs: null, dst: null };
+    }
+
+    function activeBlockForPc(pc) {
+      if (!analysis || !Array.isArray(analysis.blocks)) return null;
+      return analysis.blocks.find((block) => pc >= block.start_pc && pc <= block.end_pc) || null;
+    }
+
+    function activeLoopsForBlock(blockId) {
+      if (!analysis || blockId === null || !Array.isArray(analysis.loops)) return [];
+      return analysis.loops.filter((loop) => Array.isArray(loop.blocks) && loop.blocks.includes(blockId));
+    }
+
+    function renderRegisters(state, prev) {
+      const curRegs = state?.reg_file?.regs || [];
+      const prevRegs = prev?.reg_file?.regs || null;
+      const changed = computeChangedRegs(prevRegs, curRegs);
+      const roles = computeOperandRoles(state?.instr);
+
+      regsContainer.innerHTML = curRegs.map((value, index) => {
+        const classes = ["reg"];
+        if (changed.has(index)) classes.push("changed");
+        if (roles.lhs === index) classes.push("role-lhs");
+        if (roles.rhs === index) classes.push("role-rhs");
+        if (roles.dst === index) classes.push("role-dst");
+
+        const tags = [];
+        if (roles.lhs === index) tags.push("lhs");
+        if (roles.rhs === index) tags.push("rhs");
+        if (roles.dst === index) tags.push("dest");
+
+        return `
+          <div class="${classes.join(" ")}">
+            <div class="reg-head">
+              <span>x${index} (${ABI[index] ?? "?"})</span>
+              <span>${tags.map((tag) => `<span class="pill">${tag}</span>`).join("")}</span>
+            </div>
+            <div class="reg-value">${value}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function formatMemoryValue(event) {
+      if (!event) return "?";
+      const hexWidth = Math.max(2, (event.width || 1) * 2);
+      const normalized = Number(event.value ?? 0) >>> 0;
+      return `${event.value} (0x${normalized.toString(16).padStart(hexWidth, "0")})`;
+    }
+
+    function renderMemory(state) {
+      const events = Array.isArray(state?.memory_events) ? state.memory_events : [];
+      memoryMeta.textContent = events.length
+        ? `${events.length} access${events.length === 1 ? "" : "es"} in this step`
+        : "Per-step load/store events.";
+
+      if (events.length === 0) {
+        memoryContainer.innerHTML = `<div class="empty">No memory access in this step.</div>`;
+        return;
+      }
+
+      memoryContainer.innerHTML = events.map((event) => `
+        <div class="memory-event ${String(event.kind || "").toLowerCase()}">
+          <div><strong>${event.kind}</strong> ${event.width}-byte @ ${event.address}</div>
+          <div class="small">Value: ${formatMemoryValue(event)}</div>
+          ${event.previous_value === null || event.previous_value === undefined
+            ? ""
+            : `<div class="small">Previous: ${event.previous_value}</div>`}
+        </div>
+      `).join("");
+    }
+
+    function renderRunMetadata() {
+      const run = trace?.run || {};
+      entryLabelMetric.textContent = run.entry_label ?? "-";
+      entryPcMetric.textContent = run.entry_pc ?? "-";
+
+      const inputs = Array.isArray(run.input_registers) ? run.input_registers : [];
+      runMeta.textContent = inputs.length
+        ? `${inputs.length} explicit input${inputs.length === 1 ? "" : "s"}`
+        : "No explicit register inputs.";
+
+      if (inputs.length === 0) {
+        inputRegsContainer.innerHTML = `<div class="empty">No explicit input registers.</div>`;
+        return;
+      }
+
+      inputRegsContainer.innerHTML = inputs.map((input) => `
+        <div class="input-reg">
+          <div><strong>${formatRegisterName(input.register)}</strong></div>
+          <div class="small">Value: ${input.value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderResult() {
+      if (!result) {
+        resultMeta.textContent = "Run through the local service to decode the final return value.";
+        resultSummary.innerHTML = `<span class="empty">No interpreted result available.</span>`;
+        resultDetails.innerHTML = "";
+        return;
+      }
+
+      if (result.kind === "scalar") {
+        resultMeta.textContent = `Scalar result from ${formatRegisterName(result.register)}`;
+        resultSummary.innerHTML = `<code>${result.value}</code>`;
+        resultDetails.innerHTML = `
+          <div class="meta-item">
+            <div class="label">Raw Value</div>
+            <strong>${result.raw_value}</strong>
+          </div>
+        `;
+        return;
+      }
+
+      resultMeta.textContent = `Array result at ${formatRegisterName(result.ptr_register)} with length from ${formatRegisterName(result.length_register)}`;
+      resultSummary.innerHTML = `<code>${result.raw_pointer}</code>`;
+      resultDetails.innerHTML = `
+        <div class="meta-item">
+          <div class="label">Length</div>
+          <strong>${result.length}</strong>
+        </div>
+        <div class="meta-item">
+          <div class="label">Element Width</div>
+          <strong>${result.elem_width}</strong>
+        </div>
+        <div class="meta-item">
+          <div class="label">Signed</div>
+          <strong>${result.signed ? "yes" : "no"}</strong>
+        </div>
+        <div class="meta-item">
+          <div class="label">Decoded Values</div>
+          <strong>${Array.isArray(result.values) && result.values.length ? result.values.join(", ") : "-"}</strong>
+        </div>
+        ${result.error ? `
+          <div class="meta-item">
+            <div class="label">Decode Error</div>
+            <strong>${result.error}</strong>
+          </div>
+        ` : ""}
+      `;
+    }
+
+    function setServerStatus(message, isError = false) {
+      serverStatus.textContent = message;
+      serverStatus.classList.toggle("error", Boolean(isError));
+    }
+
+    function collectRegisterInputs() {
+      return Array.from(document.querySelectorAll("[data-reg-input]"))
+        .map((input) => ({
+          register: input.getAttribute("data-reg-input"),
+          value: input.value.trim(),
+        }))
+        .filter((input) => input.value !== "")
+        .map((input) => ({
+          register: input.register,
+          value: Number(input.value),
+        }))
+        .filter((input) => Number.isFinite(input.value));
+    }
+
+    function syncResultControls() {
+      const isArray = resultKind.value === "array";
+      document.querySelectorAll("[data-result-field='scalar-register']").forEach((node) => {
+        node.hidden = isArray;
+      });
+      ["array-ptr", "array-len", "array-width", "array-signed"].forEach((field) => {
+        document.querySelectorAll(`[data-result-field='${field}']`).forEach((node) => {
+          node.hidden = !isArray;
+        });
+      });
+    }
+
+    function collectResultConfig() {
+      if (resultKind.value === "array") {
+        return {
+          kind: "array",
+          ptr_register: resultPtrRegister.value.trim() || "a0",
+          length_register: resultLengthRegister.value.trim() || "a1",
+          elem_width: Number(resultElemWidth.value) || 4,
+          signed: resultSigned.value !== "false",
+        };
+      }
+
+      return {
+        kind: "scalar",
+        register: resultRegister.value.trim() || "a0",
+      };
+    }
+
+    function renderStatus(state, activeBlock, loops) {
+      const pills = [];
+      if (state.branch_taken === true) pills.push(`<span class="pill taken">branch taken</span>`);
+      if (state.branch_taken === false) pills.push(`<span class="pill">branch not taken</span>`);
+      if (state.terminated) pills.push(`<span class="pill halt">terminated</span>`);
+      if (activeBlock) pills.push(`<span class="pill">block ${activeBlock.id}</span>`);
+      loops.forEach((loop) => pills.push(`<span class="pill" style="background: var(--loop)">loop header ${loop.header}</span>`));
+      statusPills.innerHTML = pills.join("");
+    }
+
+    function renderBlocks(activeBlockId) {
+      if (!analysis || !Array.isArray(analysis.blocks) || analysis.blocks.length === 0) {
+        blocksContainer.innerHTML = `<div class="empty">No CFG loaded.</div>`;
+        return;
+      }
+
+      blocksContainer.innerHTML = analysis.blocks.map((block) => `
+        <div class="block ${block.id === activeBlockId ? "active" : ""}">
+          <div><strong>Block ${block.id}</strong></div>
+          <div class="small">PC ${block.start_pc} -> ${block.end_pc}</div>
+          <div class="small">Instructions: ${(block.instruction_pcs || []).join(", ")}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderLoops(activeBlockId) {
+      if (!analysis || !Array.isArray(analysis.loops) || analysis.loops.length === 0) {
+        loopsContainer.innerHTML = `<div class="empty">No loops detected or no analysis loaded.</div>`;
+        return;
+      }
+
+      loopsContainer.innerHTML = analysis.loops.map((loop) => {
+        const active = activeBlockId !== null && Array.isArray(loop.blocks) && loop.blocks.includes(activeBlockId);
+        return `
+          <div class="loop ${active ? "active" : ""}">
+            <div><strong>Header ${loop.header}</strong></div>
+            <div class="small">Back edge from block ${loop.back_edge_from}</div>
+            <div class="small">Members: ${(loop.blocks || []).join(", ")}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderEdges(activeBlockId) {
+      if (!analysis || activeBlockId === null || !Array.isArray(analysis.edges)) {
+        edgesContainer.innerHTML = `<div class="empty">No active block.</div>`;
+        return;
+      }
+
+      const edges = analysis.edges.filter((edge) => edge.from === activeBlockId);
+      if (edges.length === 0) {
+        edgesContainer.innerHTML = `<div class="empty">No outgoing edges for this block.</div>`;
+        return;
+      }
+
+      edgesContainer.innerHTML = edges.map((edge) => `
+        <div class="edge">
+          <div><strong>${edge.kind}</strong></div>
+          <div class="small">Block ${edge.from} -> Block ${edge.to}</div>
+        </div>
+      `).join("");
+    }
+
+    function render() {
+      if (!trace || !Array.isArray(trace.states) || trace.states.length === 0) return;
+
+      const states = trace.states;
+      const state = states[idx];
+      const prev = idx > 0 ? states[idx - 1] : null;
+      const activeBlock = activeBlockForPc(state.pc);
+      const activeLoops = activeLoopsForBlock(activeBlock ? activeBlock.id : null);
+
+      stepSlider.value = idx;
+      stepLabel.textContent = `${idx + 1} / ${states.length}`;
+
+      instrLine.innerHTML = `<code>${formatInstr(state.instr)}</code>`;
+      stateJson.textContent = JSON.stringify(state, null, 2);
+
+      stepMetric.textContent = state.step;
+      pcMetric.textContent = state.pc;
+      nextPcMetric.textContent = state.next_pc;
+      branchMetric.textContent =
+        state.branch_taken === null ? "-" : (state.branch_taken ? "taken" : "not taken");
+      deltaMetric.textContent = state.next_pc - state.pc;
+      blockMetric.textContent = activeBlock ? activeBlock.id : "-";
+      loopMetric.textContent = activeLoops.length ? activeLoops.map((loop) => loop.header).join(", ") : "-";
+
+      renderRunMetadata();
+      renderStatus(state, activeBlock, activeLoops);
+      renderRegisters(state, prev);
+      renderMemory(state);
+      renderResult();
+      renderBlocks(activeBlock ? activeBlock.id : null);
+      renderLoops(activeBlock ? activeBlock.id : null);
+      renderEdges(activeBlock ? activeBlock.id : null);
+
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx >= states.length - 1;
+    }
+
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      playBtn.textContent = "Play";
+    }
+
+    function play() {
+      if (!trace || !Array.isArray(trace.states)) return;
+      stop();
+      const speedMs = Math.max(50, Number(speedInput.value) || 400);
+      playBtn.textContent = "Pause";
+      timer = setInterval(() => {
+        if (idx >= trace.states.length - 1) {
+          stop();
+          return;
+        }
+        idx += 1;
+        render();
+      }, speedMs);
+    }
+
+    prevBtn.onclick = () => {
+      stop();
+      if (idx > 0) {
+        idx -= 1;
+        render();
+      }
+    };
+
+    nextBtn.onclick = () => {
+      stop();
+      if (trace && idx < trace.states.length - 1) {
+        idx += 1;
+        render();
+      }
+    };
+
+    playBtn.onclick = () => {
+      if (timer) stop();
+      else play();
+    };
+
+    stepSlider.oninput = (event) => {
+      stop();
+      idx = Number(event.target.value);
+      render();
+    };
+
+    traceInput.addEventListener("change", async (event) => {
+      stop();
+      const file = event.target.files?.[0];
+      if (!file) return;
+      trace = JSON.parse(await file.text());
+      result = null;
+      idx = 0;
+      stepSlider.min = 0;
+      stepSlider.max = Math.max(0, (trace.states?.length || 1) - 1);
+      render();
+    });
+
+    sourceFileInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      sourceText = await file.text();
+      sourceName.textContent = file.name;
+      setServerStatus(`Loaded ${file.name}. Ready to run.`);
+    });
+
+    analysisInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      analysis = JSON.parse(await file.text());
+      analysisMeta.textContent = `entry block ${analysis.entry_block}, ${analysis.blocks?.length || 0} blocks, ${analysis.loops?.length || 0} loops`;
+      if (trace) render();
+      else {
+        renderBlocks(null);
+        renderLoops(null);
+        renderEdges(null);
+      }
+    });
+
+    runBtn.addEventListener("click", async () => {
+      if (!sourceText) {
+        setServerStatus("Select an assembly source file first.", true);
+        return;
+      }
+
+      setServerStatus("Running...");
+      try {
+        const response = await fetch("/api/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source: sourceText,
+            max_steps: Math.max(1, Number(execMaxSteps.value) || 10000),
+            register_inputs: collectRegisterInputs(),
+            result: collectResultConfig(),
+          }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed");
+        }
+
+        trace = payload.trace;
+        analysis = payload.analysis;
+        result = payload.result || null;
+        idx = 0;
+        stepSlider.min = 0;
+        stepSlider.max = Math.max(0, (trace.states?.length || 1) - 1);
+        analysisMeta.textContent = `entry block ${analysis.entry_block}, ${analysis.blocks?.length || 0} blocks, ${analysis.loops?.length || 0} loops`;
+        setServerStatus("Run completed.");
+        render();
+      } catch (error) {
+        setServerStatus(error.message || "Run failed", true);
+      }
+    });
+
+    resultKind.addEventListener("change", syncResultControls);
+    syncResultControls();
+    renderResult();
+  </script>
+</body>
+
+</html>

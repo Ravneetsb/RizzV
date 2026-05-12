@@ -19,28 +19,42 @@ use memory::Memory;
 use reg::Register;
 use state::RegisterValue;
 
+/// Parser for the Rizz assembly grammar.
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct RizzParser;
 
+/// Outputs captured from a full source-to-result run.
 #[derive(Debug, Serialize)]
 pub struct RunArtifacts {
+    /// JSON serialization of the assembled program.
     pub assembly: serde_json::Value,
+    /// JSON execution trace emitted by the executor.
     pub trace: serde_json::Value,
+    /// Static control-flow summary derived from the assembled program.
     pub analysis: ControlFlowAnalysis,
+    /// Final result decoded from the executor state.
     pub result: FinalResult,
 }
 
+/// Describes how the final program result should be interpreted.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ResultSpec {
+    /// Read a single register as the result value.
     Scalar {
+        /// Register that holds the scalar result.
         register: Register,
     },
+    /// Read a contiguous array from memory using pointer and length registers.
     Array {
+        /// Register containing the base pointer.
         ptr_register: Register,
+        /// Register containing the element count.
         length_register: Register,
+        /// Element width in bytes. Supported values are 1, 2, 4, and 8.
         elem_width: u8,
+        /// Whether elements should be sign-extended when decoded.
         signed: bool,
     },
 }
@@ -53,26 +67,41 @@ impl Default for ResultSpec {
     }
 }
 
+/// Decoded result emitted by the pipeline after execution.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum FinalResult {
+    /// Scalar result read directly from a register.
     Scalar {
+        /// Register that was read.
         register: Register,
+        /// Raw register contents before any further interpretation.
         raw_value: i64,
+        /// Interpreted scalar value.
         value: i64,
     },
+    /// Array result decoded from memory.
     Array {
+        /// Register that supplied the base pointer.
         ptr_register: Register,
+        /// Register that supplied the element count.
         length_register: Register,
+        /// Raw pointer value before validation.
         raw_pointer: i64,
+        /// Number of elements requested from memory.
         length: i64,
+        /// Element width in bytes.
         elem_width: u8,
+        /// Whether values were sign-extended while decoding.
         signed: bool,
+        /// Decoded element values, empty when decoding failed.
         values: Vec<i64>,
+        /// Decode error, if the requested array could not be read.
         error: Option<String>,
     },
 }
 
+/// Parses source text into an assembled program, or returns a parse/assembly error.
 pub fn assemble_source(source: &str) -> Result<Assembler, String> {
     let pair = RizzParser::parse(Rule::program, source)
         .map_err(|err| format!("parse failed: {err}"))?
@@ -89,6 +118,10 @@ pub fn assemble_source(source: &str) -> Result<Assembler, String> {
     Ok(assembler)
 }
 
+/// Executes an assembled program with the provided run configuration.
+///
+/// Returns the executor state after running up to `max_steps`; execution
+/// errors are surfaced as strings.
 pub fn execute_program(
     assembler: &Assembler,
     run_config: &RunConfig,
@@ -101,6 +134,9 @@ pub fn execute_program(
     Ok(executor)
 }
 
+/// Runs parsing, assembly, analysis, execution, and result decoding in one step.
+///
+/// Fails if parsing, assembly, execution, or JSON serialization fails.
 pub fn run_pipeline(
     source: &str,
     run_config: &RunConfig,
@@ -120,6 +156,7 @@ pub fn run_pipeline(
     })
 }
 
+/// Parses a `--reg` style assignment of the form `<register>=<value>`.
 pub fn parse_register_assignment(raw: &str) -> Result<RegisterValue, String> {
     let (name, value) = raw
         .split_once('=')
@@ -127,6 +164,10 @@ pub fn parse_register_assignment(raw: &str) -> Result<RegisterValue, String> {
     parse_register_input(name.trim(), value.trim())
 }
 
+/// Parses a register name and integer value for initialization.
+///
+/// Rejects writes to the zero register and returns a descriptive error for
+/// unknown register names or invalid integer values.
 pub fn parse_register_input(name: &str, value: &str) -> Result<RegisterValue, String> {
     let register =
         Register::from_str(name).map_err(|_| format!("unknown register in input: {name}"))?;
