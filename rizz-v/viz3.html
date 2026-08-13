@@ -1,1322 +1,1025 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rizz-V Trace Viz</title>
+  <title>Rizz-V Visualizer</title>
   <style>
     :root {
-      --bg: #f3efe4;
-      --panel: rgba(255, 250, 240, 0.94);
-      --panel-strong: #fffdf8;
-      --ink: #1f1d1a;
-      --muted: #6b655c;
-      --line: #d7cdbc;
-      --accent: #b44f2c;
-      --accent-soft: rgba(180, 79, 44, 0.12);
-      --lhs: #dcecff;
-      --rhs: #efe3ff;
-      --dst: #ddf7e0;
-      --changed: #fff0b8;
-      --taken: #d7f3de;
-      --halt: #f8d7d7;
-      --loop: #f5e1bb;
-      --shadow: 0 16px 40px rgba(74, 53, 24, 0.12);
+      color-scheme: light;
+      --background: #f6f7f8;
+      --surface: #ffffff;
+      --text: #1f2933;
+      --muted: #65717d;
+      --border: #d7dde3;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --error: #b42318;
+      --error-soft: #fef3f2;
+      --success: #087a55;
+      --success-soft: #ecfdf3;
+      --changed: #fff8db;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
-      background:
-        radial-gradient(circle at top left, rgba(210, 124, 52, 0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(82, 117, 160, 0.16), transparent 24%),
-        linear-gradient(180deg, #f7f1e7 0%, var(--bg) 100%);
-      color: var(--ink);
-      min-height: 100vh;
-      padding: 28px;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
-    }
-
-    .shell {
-      max-width: 1440px;
-      margin: 0 auto;
-      display: grid;
-      gap: 18px;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(249, 241, 225, 0.92));
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      padding: 24px 26px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .hero p {
-      color: var(--muted);
-      max-width: 72ch;
-      line-height: 1.4;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 16px 18px;
-      box-shadow: var(--shadow);
-    }
-
-    .file-group,
-    .playback-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .playback-group {
-      margin-left: auto;
-    }
-
-    .statline {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-    }
-
-    .run-grid {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
-      align-items: start;
-    }
-
-    .request-grid {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.15fr);
-      align-items: start;
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .card-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: baseline;
-      margin-bottom: 10px;
-    }
-
-    .label {
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .metric {
-      font-size: 26px;
-      font-weight: 700;
-    }
-
-    .main-grid {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.45fr);
-      align-items: start;
-    }
-
-    .analysis-grid {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.25fr);
-      align-items: start;
-    }
-
-    .analysis-stack {
-      display: grid;
-      gap: 18px;
-    }
-
-    .secondary-grid {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.25fr);
-      align-items: start;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .request-input-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .result-config-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .meta-item {
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(215, 205, 188, 0.9);
-      border-radius: 14px;
-      padding: 10px 12px;
-    }
-
-    .meta-item strong {
-      display: block;
-      margin-top: 4px;
-      font-size: 18px;
-    }
-
-    .result-value {
-      font-size: 22px;
-      line-height: 1.35;
-      margin-top: 8px;
-    }
-
-    .result-list {
-      margin-top: 12px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .instr-line {
-      margin-top: 8px;
-      font-size: 22px;
-      line-height: 1.35;
-    }
-
-    code,
-    .pill {
-      background: rgba(34, 31, 27, 0.06);
-      border-radius: 999px;
-      padding: 3px 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid rgba(31, 29, 26, 0.08);
-    }
-
-    .pill.taken {
-      background: var(--taken);
-    }
-
-    .pill.halt {
-      background: var(--halt);
-    }
-
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .legend .pill {
-      padding-inline: 12px;
-    }
-
-    .json-panel {
-      background: rgba(31, 29, 26, 0.03);
-      border-radius: 16px;
-      padding: 12px;
-      max-height: 220px;
-      overflow: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-      white-space: pre-wrap;
-    }
-
-    .details {
-      margin-top: 16px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .details summary {
-      cursor: pointer;
-      color: var(--muted);
-      font-size: 13px;
-      user-select: none;
-    }
-
-    .regs-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
-      gap: 10px;
-    }
-
-    .reg {
-      border: 1px solid rgba(215, 205, 188, 0.95);
-      border-radius: 16px;
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.74);
-      min-height: 78px;
-      transition: transform 120ms ease, background 120ms ease;
-    }
-
-    .reg.changed {
-      background: var(--changed);
-      transform: translateY(-1px);
-    }
-
-    .reg.role-lhs {
-      background: var(--lhs);
-    }
-
-    .reg.role-rhs {
-      background: var(--rhs);
-    }
-
-    .reg.role-dst {
-      background: var(--dst);
-    }
-
-    .reg.role-lhs.role-dst {
-      background: linear-gradient(135deg, var(--lhs) 0%, var(--lhs) 50%, var(--dst) 50%, var(--dst) 100%);
-    }
-
-    .reg.role-lhs.role-rhs {
-      background: linear-gradient(135deg, var(--lhs) 0%, var(--lhs) 50%, var(--rhs) 50%, var(--rhs) 100%);
-    }
-
-    .reg.role-rhs.role-dst {
-      background: linear-gradient(135deg, var(--rhs) 0%, var(--rhs) 50%, var(--dst) 50%, var(--dst) 100%);
-    }
-
-    .reg.role-lhs.role-rhs.role-dst {
-      background: repeating-linear-gradient(135deg, var(--lhs) 0px, var(--lhs) 12px, var(--rhs) 12px, var(--rhs) 24px, var(--dst) 24px, var(--dst) 36px);
-    }
-
-    .reg-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      align-items: center;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .reg-value {
-      margin-top: 10px;
-      font-size: 18px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .block-list,
-    .loop-list,
-    .edge-list,
-    .memory-list,
-    .input-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .block,
-    .loop,
-    .edge,
-    .memory-event,
-    .input-reg {
-      border: 1px solid rgba(215, 205, 188, 0.95);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.68);
-      padding: 12px;
-    }
-
-    .block.active {
-      border-color: var(--accent);
-      box-shadow: inset 0 0 0 1px rgba(180, 79, 44, 0.18);
-      background: rgba(255, 239, 229, 0.8);
-    }
-
-    .loop {
-      background: var(--loop);
-    }
-
-    .memory-event.load {
-      background: rgba(220, 236, 255, 0.72);
-    }
-
-    .memory-event.store {
-      background: rgba(221, 247, 224, 0.72);
-    }
-
-    .small {
-      font-size: 13px;
-      color: var(--muted);
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.45;
     }
 
-    input[type="file"],
-    input[type="number"],
-    input[type="text"] {
-      font: inherit;
+    button, input, select, textarea { font: inherit; }
+    button, input, select, textarea, summary { outline-offset: 2px; }
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+    [hidden] { display: none !important; }
+
+    .shell {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
     }
 
-    .text-input {
-      width: 100%;
-      border: 1px solid rgba(31, 29, 26, 0.12);
-      background: var(--panel-strong);
-      color: var(--ink);
-      padding: 8px 10px;
-      border-radius: 12px;
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
     }
+
+    h1 { margin: 0; font-size: 1.35rem; }
+    h2 { margin: 0; font-size: 1rem; }
+    p { margin: 0; }
+
+    .muted, .empty { color: var(--muted); }
+    .empty { font-style: italic; }
+    .small { font-size: .84rem; }
+    .section { margin-top: 16px; }
+
+    .stage { margin-top: 22px; scroll-margin-top: 16px; }
+    .stage:first-of-type { margin-top: 0; }
+    .stage-heading { display: grid; grid-template-columns: 30px 1fr; gap: 10px; margin-bottom: 12px; }
+    .stage-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: .84rem;
+      font-weight: 700;
+    }
+    .stage-title { font-size: 1.08rem; }
+    .stage-description { margin-top: 2px; color: var(--muted); font-size: .88rem; }
+    .stage-body { padding-left: 40px; }
+
+    .panel, details {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .panel { padding: 16px; }
+    .panel + .panel { margin-top: 12px; }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 320px;
+      resize: vertical;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .9rem;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+
+    .toolbar, .playback, .metadata, .field-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+    }
+
+    .toolbar { margin-top: 10px; }
+    .playback { padding: 12px 0; }
+    .run-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; }
+
+    button, .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:hover:not(:disabled), .file-button:hover { border-color: #9aa5b1; background: #fafbfc; }
+    button.primary { border-color: var(--accent); background: var(--accent); color: white; }
+    button.primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+    button:disabled, input:disabled { cursor: not-allowed; opacity: .5; }
+    .file-button input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .file-button:focus-within { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); }
 
     .status {
-      margin-top: 12px;
       min-height: 22px;
       color: var(--muted);
+      font-size: .88rem;
+    }
+    .status.loading { color: var(--accent); }
+    .status.success { color: var(--success); }
+    .status.error { color: var(--error); }
+
+    input[type="range"] { flex: 1 1 260px; min-width: 160px; accent-color: var(--accent); }
+    input[type="number"], input[type="text"], select {
+      min-height: 36px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: white;
+      color: var(--text);
     }
 
-    .status.error {
-      color: #8f2a18;
-    }
+    .speed { width: 84px; }
 
-    input[type="range"] {
-      width: 220px;
-      accent-color: var(--accent);
-    }
-
-    button {
-      font: inherit;
-      border: 1px solid rgba(31, 29, 26, 0.12);
-      background: var(--panel-strong);
-      color: var(--ink);
-      padding: 8px 14px;
-      border-radius: 999px;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: default;
-    }
-
-    .empty {
+    .config-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 18px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafbfc;
       color: var(--muted);
-      font-style: italic;
+      font-size: .85rem;
+    }
+    .config-summary strong { color: var(--text); }
+
+    .guidance {
+      padding: 20px;
+      border: 1px dashed #b8c1cb;
+      border-radius: 6px;
+      background: #fafbfc;
+      text-align: center;
+      color: var(--muted);
+    }
+    .guidance strong { display: block; margin-bottom: 3px; color: var(--text); }
+
+    .section-note { margin: -5px 0 12px; color: var(--muted); font-size: .84rem; }
+    .section-note.error { color: var(--error); }
+    .more-details { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+    .more-details > p { margin-top: 3px; }
+    .detail-section + .detail-section { margin-top: 18px; }
+    .detail-section h3 { margin: 0 0 8px; font-size: .9rem; }
+    .playback-settings { border: 0; background: transparent; margin: 0; }
+    .playback-settings summary { padding: 7px 0; color: var(--muted); font-size: .84rem; font-weight: 500; }
+    .playback-settings[open] summary { border: 0; }
+    .playback-settings .details-body { padding: 4px 0 0; }
+
+    .metadata {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafbfc;
+      font-size: .84rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .metadata span + span::before { content: "·"; margin-right: 12px; color: #a4adb7; }
+
+    .instruction {
+      padding: 13px 14px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
     }
 
-    @media (max-width: 1100px) {
-      .main-grid,
-      .run-grid,
-      .request-grid,
-      .analysis-grid,
-      .secondary-grid {
-        grid-template-columns: 1fr;
-      }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { padding: 1px 4px; background: #eef1f4; border-radius: 3px; }
 
-      .playback-group {
-        margin-left: 0;
-      }
+    .result-value { margin-top: 4px; font-size: 1.2rem; }
+    .result-grid, .register-grid, .item-list { display: grid; gap: 8px; }
+    .result-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 10px; }
+    .register-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .register, .list-item {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: white;
+    }
+    .register.changed { background: var(--changed); border-color: #e7ce70; }
+    .register.relevant { border-left: 3px solid var(--accent); }
+    .register-head { display: flex; justify-content: space-between; gap: 6px; color: var(--muted); font-size: .76rem; }
+    .register-value { margin-top: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+    .role { color: var(--accent-dark); }
+
+    .memory.load { border-left: 3px solid var(--accent); }
+    .memory.store { border-left: 3px solid var(--success); }
+    .active { border-color: var(--accent); background: var(--accent-soft); }
+
+    details { margin-top: 10px; }
+    summary { cursor: pointer; padding: 12px 14px; font-weight: 600; }
+    details[open] summary { border-bottom: 1px solid var(--border); }
+    .details-body { padding: 14px; }
+
+    .field-grid { align-items: flex-end; }
+    .field-grid label { display: grid; gap: 4px; min-width: 125px; flex: 1 1 125px; font-size: .82rem; color: var(--muted); }
+    .field-grid label.wide { flex-basis: 100%; }
+    .subsection + .subsection { margin-top: 18px; }
+
+    .import-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+    .import-row + .import-row { margin-top: 10px; }
+
+    pre {
+      max-height: 360px;
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #f7f8fa;
+      font-size: .78rem;
+      white-space: pre-wrap;
     }
 
-    @media (max-width: 720px) {
-      body {
-        padding: 16px;
-      }
+    .error-box { padding: 9px 10px; border: 1px solid #f1b5af; background: var(--error-soft); color: var(--error); border-radius: 4px; }
 
-      .regs-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 20px, 960px); padding-top: 14px; }
+      header { display: block; }
+      header .muted { margin-top: 3px; }
+      textarea { min-height: 260px; }
+      .register-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar > button, .toolbar > .file-button { flex: 1 1 auto; }
+      .metadata span { flex: 1 1 42%; }
+      .metadata span + span::before { content: none; }
+      .import-row { grid-template-columns: 1fr; }
+      .import-row .file-button { justify-self: start; }
+      .stage-body { padding-left: 0; }
     }
   </style>
 </head>
-
 <body>
-  <div class="shell">
-    <section class="hero">
-      <h1>Rizz-V Trace Visualizer</h1>
-      <p>Load a runtime trace and, optionally, the CFG analysis output. The view tracks register mutation, memory activity, control-flow steps, active basic blocks, and loop headers so stack-heavy assembly is readable instead of opaque.</p>
-    </section>
+  <main class="shell">
+    <header>
+      <h1>Rizz-V Visualizer</h1>
+      <p class="muted small">Assemble, run, and inspect each step.</p>
+    </header>
 
-    <section class="controls">
-      <div class="file-group">
-        <label class="pill">Source File <input type="file" id="sourceFileInput" accept=".s,text/plain" /></label>
-        <label class="pill">Trace JSON <input type="file" id="traceInput" accept="application/json" /></label>
-        <label class="pill">Analysis JSON <input type="file" id="analysisInput" accept="application/json" /></label>
+    <section class="stage" aria-labelledby="writeHeading">
+      <div class="stage-heading">
+        <span class="stage-number" aria-hidden="true">1</span>
+        <div><h2 id="writeHeading" class="stage-title">Write or load a program</h2><p class="stage-description">Paste assembly, start from an example, or load a file. Loaded source remains editable.</p></div>
       </div>
-
-      <div class="playback-group">
-        <button id="prevBtn">Prev</button>
-        <button id="nextBtn">Next</button>
-        <button id="playBtn">Play</button>
-        <span class="pill">Step <input id="stepSlider" type="range" min="0" max="0" value="0" /></span>
-        <span id="stepLabel" class="pill">0 / 0</span>
-        <span class="pill">Speed <input id="speedInput" type="number" value="400" min="50" step="50" style="width: 86px" /> ms</span>
-      </div>
-    </section>
-
-    <section class="request-grid">
-      <div class="card">
-        <div class="card-title">
-          <h2>Run Program</h2>
-          <span id="sourceName" class="small">No source file selected.</span>
-        </div>
-        <div class="meta-grid">
-          <div class="meta-item">
-            <div class="label">Execution</div>
-            <strong><button id="runBtn" type="button">Run Uploaded Source</button></strong>
-          </div>
-          <div class="meta-item">
-            <div class="label">Max Steps</div>
-            <strong><input id="execMaxSteps" class="text-input" type="number" value="10000" min="1" step="1" /></strong>
-          </div>
-        </div>
-        <div id="serverStatus" class="status">Upload an assembly file, set inputs if needed, and run it through the local service.</div>
-        <div class="card-title" style="margin-top: 16px;">
-          <h2>Result Interpretation</h2>
-          <span class="small">Defaults to scalar <code>a0</code>.</span>
-        </div>
-        <div class="result-config-grid">
-          <label>Kind
-            <select id="resultKind" class="text-input">
-              <option value="scalar">Scalar</option>
-              <option value="array">Array</option>
-            </select>
-          </label>
-          <label data-result-field="scalar-register">Register
-            <input id="resultRegister" class="text-input" type="text" value="a0" />
-          </label>
-          <label data-result-field="array-ptr" hidden>Pointer Register
-            <input id="resultPtrRegister" class="text-input" type="text" value="a0" />
-          </label>
-          <label data-result-field="array-len" hidden>Length Register
-            <input id="resultLengthRegister" class="text-input" type="text" value="a1" />
-          </label>
-          <label data-result-field="array-width" hidden>Element Width
-            <select id="resultElemWidth" class="text-input">
-              <option value="1">1 byte</option>
-              <option value="2">2 bytes</option>
-              <option value="4" selected>4 bytes</option>
-              <option value="8">8 bytes</option>
-            </select>
-          </label>
-          <label data-result-field="array-signed" hidden>Signed Elements
-            <select id="resultSigned" class="text-input">
-              <option value="true" selected>Signed</option>
-              <option value="false">Unsigned</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <h2>Register Inputs</h2>
-          <span class="small">Blank values are ignored.</span>
-        </div>
-        <div class="request-input-grid">
-          <label>a0 <input class="text-input" data-reg-input="a0" type="text" /></label>
-          <label>a1 <input class="text-input" data-reg-input="a1" type="text" /></label>
-          <label>a2 <input class="text-input" data-reg-input="a2" type="text" /></label>
-          <label>a3 <input class="text-input" data-reg-input="a3" type="text" /></label>
-          <label>a4 <input class="text-input" data-reg-input="a4" type="text" /></label>
-          <label>a5 <input class="text-input" data-reg-input="a5" type="text" /></label>
-          <label>a6 <input class="text-input" data-reg-input="a6" type="text" /></label>
-          <label>a7 <input class="text-input" data-reg-input="a7" type="text" /></label>
-          <label>sp <input class="text-input" data-reg-input="sp" type="text" /></label>
-          <label>ra <input class="text-input" data-reg-input="ra" type="text" /></label>
+      <div class="stage-body">
+        <label for="sourceEditor" class="small"><strong>Assembly source</strong></label>
+        <textarea id="sourceEditor" spellcheck="false" aria-describedby="sourceName" placeholder="Paste RISC-V assembly here…"></textarea>
+        <div class="toolbar">
+          <label class="file-button">Load file<input type="file" id="sourceFileInput" accept=".s,.asm,text/plain" /></label>
+          <select id="exampleSelect" aria-label="Example program">
+            <option value="">Example programs…</option>
+            <option value="return42">Return 42</option>
+            <option value="addInputs">Add two inputs</option>
+            <option value="countdown">Countdown loop</option>
+          </select>
+          <button id="exampleBtn" type="button" disabled>Use example</button>
+          <button id="clearSourceBtn" type="button">Clear</button>
+          <span id="sourceName" class="muted small">No file loaded</span>
         </div>
       </div>
     </section>
 
-    <section class="statline">
-      <div class="card">
-        <div class="label">Current PC</div>
-        <div class="metric" id="pcMetric">-</div>
+    <section class="stage" aria-labelledby="configureHeading">
+      <div class="stage-heading">
+        <span class="stage-number" aria-hidden="true">2</span>
+        <div><h2 id="configureHeading" class="stage-title">Configure and run</h2><p class="stage-description">The defaults work for programs that return one value in <code>a0</code>.</p></div>
       </div>
-      <div class="card">
-        <div class="label">Next PC</div>
-        <div class="metric" id="nextPcMetric">-</div>
-      </div>
-      <div class="card">
-        <div class="label">Active Block</div>
-        <div class="metric" id="blockMetric">-</div>
-      </div>
-      <div class="card">
-        <div class="label">Loop Header</div>
-        <div class="metric" id="loopMetric">-</div>
-      </div>
-    </section>
-
-    <section class="run-grid">
-      <div class="card">
-        <div class="card-title">
-          <h2>Run Setup</h2>
-          <span id="runMeta" class="small">Load a trace to inspect inputs.</span>
+      <div class="stage-body">
+        <div id="configSummary" class="config-summary" aria-live="polite">
+          <span>Result <strong>a0</strong></span><span>Starting values <strong>load a program</strong></span><span>Limit <strong>10,000 steps</strong></span>
         </div>
-        <div class="meta-grid">
-          <div class="meta-item">
-            <div class="label">Entry Label</div>
-            <strong id="entryLabelMetric">-</strong>
-          </div>
-          <div class="meta-item">
-            <div class="label">Entry PC</div>
-            <strong id="entryPcMetric">-</strong>
-          </div>
+        <div class="subsection section">
+          <h2>Starting register values</h2>
+          <p id="inputGuidance" class="section-note">Write or load a program to identify the registers it reads before assigning.</p>
+          <div id="inputFields" class="field-grid"></div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <h2>Input Registers</h2>
-          <span class="small">Values provided at startup.</span>
-        </div>
-        <div id="inputRegsContainer" class="input-list">
-          <div class="empty">No explicit input registers.</div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="card">
-        <div class="card-title">
-          <h2>Final Result</h2>
-          <span id="resultMeta" class="small">Run through the local service to decode the final return value.</span>
-        </div>
-        <div id="resultSummary" class="result-value"><span class="empty">No interpreted result available.</span></div>
-        <div id="resultDetails" class="result-list"></div>
-      </div>
-    </section>
-
-    <section class="main-grid">
-      <div class="card">
-        <div>
-          <div class="card-title">
-            <h2>Instruction</h2>
-            <div id="statusPills"></div>
-          </div>
-          <div id="instrLine" class="instr-line"><span class="empty">Load a trace to begin.</span></div>
-          <div class="meta-grid">
-            <div class="meta-item">
-              <div class="label">Step</div>
-              <strong id="stepMetric">-</strong>
-            </div>
-            <div class="meta-item">
-              <div class="label">Branch</div>
-              <strong id="branchMetric">-</strong>
-            </div>
-            <div class="meta-item">
-              <div class="label">PC Delta</div>
-              <strong id="deltaMetric">-</strong>
+        <details id="configDetails">
+          <summary>Change result interpretation or step limit</summary>
+          <div class="details-body">
+            <div class="field-grid">
+              <label>Max steps<input id="execMaxSteps" type="number" value="10000" min="1" step="1" /></label>
+              <label>Result kind<select id="resultKind"><option value="scalar">Scalar</option><option value="array">Array</option></select></label>
+              <label data-result-field="scalar-register">Result register<input id="resultRegister" type="text" value="a0" /></label>
+              <label data-result-field="array-ptr" hidden>Pointer register<input id="resultPtrRegister" type="text" value="a0" /></label>
+              <label data-result-field="array-len" hidden>Length register<input id="resultLengthRegister" type="text" value="a1" /></label>
+              <label data-result-field="array-width" hidden>Element width<select id="resultElemWidth"><option value="1">1 byte</option><option value="2">2 bytes</option><option value="4" selected>4 bytes</option><option value="8">8 bytes</option></select></label>
+              <label data-result-field="array-signed" hidden>Elements<select id="resultSigned"><option value="true" selected>Signed</option><option value="false">Unsigned</option></select></label>
             </div>
           </div>
-          <div class="legend">
-            <span class="pill" style="background: var(--lhs)">lhs</span>
-            <span class="pill" style="background: var(--rhs)">rhs</span>
-            <span class="pill" style="background: var(--dst)">dest</span>
-            <span class="pill" style="background: var(--changed)">changed</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <h2>Registers</h2>
-          <span class="small">Roles are inferred from the current instruction.</span>
-        </div>
-        <div id="regsContainer" class="regs-grid"></div>
-      </div>
-    </section>
-
-    <section class="secondary-grid">
-      <div class="card">
-        <div class="card-title">
-          <h2>Memory Activity</h2>
-          <span id="memoryMeta" class="small">Per-step load/store events.</span>
-        </div>
-        <div id="memoryContainer" class="memory-list">
-          <div class="empty">No memory access in this step.</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <h2>State JSON</h2>
-          <span class="small">Executed state</span>
-        </div>
-        <pre id="stateJson" class="json-panel"></pre>
-      </div>
-    </section>
-
-    <section class="analysis-grid">
-      <div class="card">
-        <div class="card-title">
-          <h2>Loops</h2>
-          <span id="analysisMeta" class="small">Load analysis JSON for CFG context.</span>
-        </div>
-        <div id="loopsContainer" class="loop-list">
-          <div class="empty">No loops detected or no analysis loaded.</div>
-        </div>
-      </div>
-
-      <div class="analysis-stack">
-        <div class="card">
-          <div class="card-title">
-            <h2>Basic Blocks</h2>
-            <span class="small">Active block tracks the current PC.</span>
-          </div>
-          <div id="blocksContainer" class="block-list">
-            <div class="empty">No CFG loaded.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">
-            <h2>Edges</h2>
-            <span class="small">Outgoing CFG edges for the active block</span>
-          </div>
-          <div id="edgesContainer" class="edge-list">
-            <div class="empty">No active block.</div>
-          </div>
+        </details>
+        <div class="run-bar">
+          <button id="runBtn" class="primary" type="button" disabled>Run program</button>
+          <span id="serverStatus" class="status" role="status" aria-live="polite">Enter assembly to begin.</span>
         </div>
       </div>
     </section>
-  </div>
+
+    <section id="inspectStage" class="stage" aria-labelledby="inspectHeading" tabindex="-1">
+      <div class="stage-heading">
+        <span class="stage-number" aria-hidden="true">3</span>
+        <div><h2 id="inspectHeading" class="stage-title">Inspect execution</h2><p class="stage-description">Move through the trace to see what each instruction reads, writes, and changes.</p></div>
+      </div>
+      <div class="stage-body">
+        <div id="inspectEmpty" class="guidance"><strong>Run a program to begin.</strong>Playback, registers, and memory activity will appear here.</div>
+        <div id="inspectContent" hidden>
+          <section aria-labelledby="playbackHeading">
+            <h2 id="playbackHeading">Playback</h2>
+            <div class="playback">
+              <button id="prevBtn" type="button" disabled>Previous</button>
+              <button id="playBtn" type="button" disabled>Play</button>
+              <button id="nextBtn" type="button" disabled>Next</button>
+              <input id="stepSlider" type="range" min="0" max="0" value="0" aria-label="Trace step" disabled />
+              <span id="stepLabel" class="small">0 / 0</span>
+            </div>
+            <div id="traceStatus" class="status" role="status" aria-live="polite">Run a program to enable playback.</div>
+            <details class="playback-settings">
+              <summary>Playback settings</summary>
+              <div class="details-body"><label class="small">Step interval <input id="speedInput" class="speed" type="number" value="400" min="50" step="50" aria-label="Playback speed in milliseconds" /> ms</label></div>
+            </details>
+          </section>
+
+          <section class="panel section" aria-labelledby="instructionHeading">
+            <div class="section-head"><h2 id="instructionHeading">Current instruction</h2></div>
+            <div id="instrLine" class="instruction"><span class="empty">No instruction.</span></div>
+            <div id="metadataRow" class="metadata section" aria-label="Current execution metadata">
+              <span>Step <strong id="stepMetric">–</strong></span><span>PC <strong id="pcMetric">–</strong></span><span>Next <strong id="nextPcMetric">–</strong></span><span>Branch <strong id="branchMetric">–</strong></span><span>Block <strong id="blockMetric">–</strong></span><span>Loop <strong id="loopMetric">–</strong></span>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="resultHeading">
+            <div class="section-head"><h2 id="resultHeading">Program result</h2><span id="resultMeta" class="muted small">Interpreted from a0 by default</span></div>
+            <div id="resultSummary" class="result-value"><span class="empty">No interpreted result.</span></div>
+            <div id="resultDetails" class="result-grid"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="registerHeading">
+            <div class="section-head"><h2 id="registerHeading">Relevant registers</h2><span class="muted small">Read, written, or changed now</span></div>
+            <p class="section-note">These are the values used or modified by the current instruction.</p>
+            <div id="regsContainer" class="register-grid"><div class="empty">No register state.</div></div>
+          </section>
+
+          <section class="panel" aria-labelledby="memoryHeading">
+            <div class="section-head"><h2 id="memoryHeading">Memory activity</h2><span id="memoryMeta" class="muted small">Current step</span></div>
+            <div id="memoryContainer" class="item-list"><div class="empty">No memory access.</div></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="more-details" aria-labelledby="moreHeading">
+      <h2 id="moreHeading" class="stage-title">More details</h2>
+      <p class="muted small">Explore complete machine state, control flow, or generated data when you need it.</p>
+      <details><summary>All registers</summary><div class="details-body"><div id="allRegsContainer" class="register-grid"><div class="empty">Run a program to see all registers.</div></div></div></details>
+      <details>
+        <summary>Control flow</summary>
+        <div class="details-body">
+          <div class="detail-section"><h3>Basic blocks</h3><div id="blocksContainer" class="item-list"><div class="empty">No control-flow analysis loaded.</div></div></div>
+          <div class="detail-section"><h3>Detected loops</h3><div id="loopsContainer" class="item-list"><div class="empty">No loop analysis loaded.</div></div></div>
+          <div class="detail-section"><h3>Edges from the active block</h3><div id="edgesContainer" class="item-list"><div class="empty">No active block.</div></div></div>
+        </div>
+      </details>
+      <details>
+        <summary>Developer data</summary>
+        <div class="details-body">
+          <div class="detail-section">
+            <h3>Import generated JSON</h3>
+            <div class="import-row"><div><strong>Trace JSON</strong><div id="traceImportStatus" class="status">No file imported.</div></div><label class="file-button">Choose trace<input type="file" id="traceInput" accept=".json,application/json" /></label></div>
+            <div class="import-row"><div><strong>Analysis JSON</strong><div id="analysisImportStatus" class="status">No file imported.</div></div><label class="file-button">Choose analysis<input type="file" id="analysisInput" accept=".json,application/json" /></label></div>
+          </div>
+          <div class="detail-section"><h3>Run metadata</h3><div id="runMetadata"><div class="empty">No run metadata.</div></div></div>
+          <div class="detail-section"><h3>Raw state JSON</h3><pre id="stateJson">No state loaded.</pre></div>
+        </div>
+      </details>
+    </section>
+  </main>
 
   <script>
-    const ABI = [
-      "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
-      "s0/fp", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
-      "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
-      "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
-    ];
-
-    const REG_TO_X = {
-      ZERO: 0, RA: 1, SP: 2, GP: 3, TP: 4, T0: 5, T1: 6, T2: 7,
-      S0: 8, FP: 8, S1: 9, A0: 10, A1: 11, A2: 12, A3: 13, A4: 14,
-      A5: 15, A6: 16, A7: 17, S2: 18, S3: 19, S4: 20, S5: 21, S6: 22,
-      S7: 23, S8: 24, S9: 25, S10: 26, S11: 27, T3: 28, T4: 29, T5: 30, T6: 31,
+    const ABI = ["zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0/fp", "s1", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"];
+    const REG_TO_X = { ZERO: 0, RA: 1, SP: 2, GP: 3, TP: 4, T0: 5, T1: 6, T2: 7, S0: 8, FP: 8, S1: 9, A0: 10, A1: 11, A2: 12, A3: 13, A4: 14, A5: 15, A6: 16, A7: 17, S2: 18, S3: 19, S4: 20, S5: 21, S6: 22, S7: 23, S8: 24, S9: 25, S10: 26, S11: 27, T3: 28, T4: 29, T5: 30, T6: 31 };
+    const STORAGE_KEY = "rizz-v-visualizer-draft-v1";
+    const EXAMPLES = {
+      return42: { source: "li a0, 42\nret\n" },
+      addInputs: { source: "add a0, a0, a1\nret\n" },
+      countdown: { source: "li t0, 3\ncountdown:\n  addi t0, t0, -1\n  bnez t0, countdown\n  li a0, 42\nret\n" },
     };
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 
-    const el = (id) => document.getElementById(id);
-
-    const traceInput = el("traceInput");
-    const analysisInput = el("analysisInput");
-    const sourceFileInput = el("sourceFileInput");
-    const prevBtn = el("prevBtn");
-    const nextBtn = el("nextBtn");
-    const playBtn = el("playBtn");
-    const stepSlider = el("stepSlider");
-    const stepLabel = el("stepLabel");
-    const speedInput = el("speedInput");
-    const runBtn = el("runBtn");
-    const execMaxSteps = el("execMaxSteps");
-    const sourceName = el("sourceName");
-    const serverStatus = el("serverStatus");
-    const resultKind = el("resultKind");
-    const resultRegister = el("resultRegister");
-    const resultPtrRegister = el("resultPtrRegister");
-    const resultLengthRegister = el("resultLengthRegister");
-    const resultElemWidth = el("resultElemWidth");
-    const resultSigned = el("resultSigned");
-
-    const instrLine = el("instrLine");
-    const stateJson = el("stateJson");
-    const statusPills = el("statusPills");
-    const regsContainer = el("regsContainer");
-    const memoryContainer = el("memoryContainer");
-    const memoryMeta = el("memoryMeta");
-    const runMeta = el("runMeta");
-    const entryLabelMetric = el("entryLabelMetric");
-    const entryPcMetric = el("entryPcMetric");
-    const inputRegsContainer = el("inputRegsContainer");
-    const resultMeta = el("resultMeta");
-    const resultSummary = el("resultSummary");
-    const resultDetails = el("resultDetails");
-
-    const pcMetric = el("pcMetric");
-    const nextPcMetric = el("nextPcMetric");
-    const blockMetric = el("blockMetric");
-    const loopMetric = el("loopMetric");
-    const stepMetric = el("stepMetric");
-    const branchMetric = el("branchMetric");
-    const deltaMetric = el("deltaMetric");
-
-    const analysisMeta = el("analysisMeta");
-    const blocksContainer = el("blocksContainer");
-    const loopsContainer = el("loopsContainer");
-    const edgesContainer = el("edgesContainer");
+    const sourceEditor = $("sourceEditor");
+    const sourceFileInput = $("sourceFileInput");
+    const traceInput = $("traceInput");
+    const analysisInput = $("analysisInput");
+    const runBtn = $("runBtn");
+    const prevBtn = $("prevBtn");
+    const nextBtn = $("nextBtn");
+    const playBtn = $("playBtn");
+    const stepSlider = $("stepSlider");
+    const speedInput = $("speedInput");
+    const resultKind = $("resultKind");
+    const exampleSelect = $("exampleSelect");
 
     let trace = null;
     let analysis = null;
     let result = null;
-    let idx = 0;
+    let index = 0;
     let timer = null;
-    let sourceText = "";
+    let running = false;
+    let restoredSettings = {};
 
-    function regNameToIndex(regName) {
-      if (typeof regName !== "string") return null;
-      return Object.prototype.hasOwnProperty.call(REG_TO_X, regName) ? REG_TO_X[regName] : null;
+    function setStatus(id, message, kind = "") {
+      const node = $(id);
+      node.textContent = message;
+      node.className = `status ${kind}`.trim();
     }
 
-    function normalizeInstruction(instr) {
-      if (typeof instr === "string") return { kind: instr, data: null };
-      if (instr && typeof instr === "object") {
-        const keys = Object.keys(instr);
-        if (keys.length === 1) {
-          const kind = keys[0];
-          return { kind, data: instr[kind] };
-        }
+    function showInspector(show) {
+      $("inspectEmpty").hidden = show;
+      $("inspectContent").hidden = !show;
+    }
+
+    function normalizedSourceRegister(token) {
+      const raw = String(token || "").trim().toLowerCase();
+      if (raw === "fp") return "s0";
+      if (/^x(?:[0-9]|[12][0-9]|3[01])$/.test(raw)) {
+        const name = ABI[Number(raw.slice(1))];
+        return name === "s0/fp" ? "s0" : name;
       }
-      return { kind: "Unknown", data: instr };
+      return /^(?:zero|ra|sp|t[0-6]|s(?:[0-9]|10|11)|a[0-7])$/.test(raw) ? raw : null;
     }
 
-    function formatRegisterName(reg) {
-      return typeof reg === "string" ? reg.toLowerCase() : "?";
+    function inferredInputRegisters(source) {
+      const rOps = new Set(["add", "sub", "div", "mul", "sll"]);
+      const loads = new Set(["lb", "lbu", "lh", "lhu", "lw", "ld"]);
+      const stores = new Set(["sb", "sh", "sw", "sd"]);
+      const branches = new Set(["beq", "bne", "blt", "bge", "bltu", "bgeu", "bgt", "ble", "bgtu", "bleu"]);
+      const zeroBranches = new Set(["beqz", "bnez", "bltz", "bgez"]);
+      const instructions = [];
+      const labels = new Map();
+      const globals = new Set();
+      source.split(/\r?\n/).forEach((sourceLine) => {
+        let line = sourceLine.replace(/#.*/, "").trim();
+        const directive = line.match(/^\.glob(?:al|l)\s+([A-Za-z_.$][\w.$]*)/i);
+        if (directive) { globals.add(directive[1]); return; }
+        let label;
+        while ((label = line.match(/^([A-Za-z_.$][\w.$]*)\s*:\s*/))) {
+          labels.set(label[1], instructions.length);
+          line = line.slice(label[0].length);
+        }
+        if (!line || line.startsWith(".")) return;
+        const parts = line.replace(/[(),]/g, " ").trim().split(/\s+/);
+        instructions.push({ opcode: parts[0].toLowerCase(), operands: parts.slice(1) });
+      });
+
+      if (!instructions.length) return [];
+      const effects = instructions.map(({ opcode, operands }) => {
+        const reads = [];
+        const writes = [];
+        const read = (token) => { const register = normalizedSourceRegister(token); if (register && register !== "zero") reads.push(register); };
+        const write = (token) => { const register = normalizedSourceRegister(token); if (register && register !== "zero") writes.push(register); };
+        if (rOps.has(opcode)) { read(operands[1]); read(operands[2]); write(operands[0]); }
+        else if (opcode === "addi" || opcode === "mv") { read(operands[1]); write(operands[0]); }
+        else if (opcode === "li") write(operands[0]);
+        else if (loads.has(opcode)) { read(operands.at(-1)); write(operands[0]); }
+        else if (stores.has(opcode)) { read(operands[0]); read(operands.at(-1)); }
+        else if (branches.has(opcode)) { read(operands[0]); read(operands[1]); }
+        else if (zeroBranches.has(opcode)) read(operands[0]);
+        else if (opcode === "jal") write(operands.length > 1 ? operands[0] : "ra");
+        return { reads: new Set(reads), writes: new Set(writes) };
+      });
+
+      const successors = instructions.map(() => []);
+      const returnSites = [];
+      const addSuccessor = (from, to) => { if (Number.isInteger(to) && to >= 0 && to < instructions.length) successors[from].push(to); };
+      instructions.forEach(({ opcode, operands }, instructionIndex) => {
+        const next = instructionIndex + 1;
+        const target = labels.get(operands.at(-1));
+        if (branches.has(opcode) || zeroBranches.has(opcode)) {
+          addSuccessor(instructionIndex, target);
+          addSuccessor(instructionIndex, next);
+        } else if (opcode === "j") {
+          addSuccessor(instructionIndex, target);
+        } else if (opcode === "jal") {
+          addSuccessor(instructionIndex, target);
+          const destination = normalizedSourceRegister(operands.length > 1 ? operands[0] : "ra");
+          if (destination !== "zero" && next < instructions.length) returnSites.push(next);
+        } else if (opcode !== "ret") {
+          addSuccessor(instructionIndex, next);
+        }
+      });
+      instructions.forEach(({ opcode }, instructionIndex) => {
+        if (opcode === "ret") returnSites.forEach((returnSite) => addSuccessor(instructionIndex, returnSite));
+      });
+
+      const globalEntries = [...globals].map((name) => labels.get(name)).filter(Number.isInteger);
+      const entry = globalEntries.length ? Math.min(...globalEntries) : 0;
+      const reachable = new Set();
+      const work = [entry];
+      while (work.length) {
+        const current = work.pop();
+        if (reachable.has(current)) continue;
+        reachable.add(current);
+        successors[current].forEach((next) => work.push(next));
+      }
+
+      const predecessors = instructions.map(() => []);
+      successors.forEach((targets, from) => targets.forEach((to) => { if (reachable.has(from) && reachable.has(to)) predecessors[to].push(from); }));
+      const runtimeRegisters = new Set(["zero", "ra", "sp"]);
+      const universe = new Set(runtimeRegisters);
+      effects.forEach(({ reads, writes }) => { reads.forEach((register) => universe.add(register)); writes.forEach((register) => universe.add(register)); });
+      const inputs = instructions.map(() => new Set(universe));
+      const outputs = instructions.map(() => new Set(universe));
+      inputs[entry] = new Set(runtimeRegisters);
+
+      let changed = true;
+      while (changed) {
+        changed = false;
+        reachable.forEach((instructionIndex) => {
+          let nextInput;
+          if (instructionIndex === entry) nextInput = new Set(runtimeRegisters);
+          else {
+            const preds = predecessors[instructionIndex];
+            nextInput = preds.length ? new Set(outputs[preds[0]]) : new Set(runtimeRegisters);
+            preds.slice(1).forEach((pred) => { nextInput = new Set([...nextInput].filter((register) => outputs[pred].has(register))); });
+          }
+          const nextOutput = new Set([...nextInput, ...effects[instructionIndex].writes]);
+          const sameInput = inputs[instructionIndex].size === nextInput.size && [...inputs[instructionIndex]].every((register) => nextInput.has(register));
+          const sameOutput = outputs[instructionIndex].size === nextOutput.size && [...outputs[instructionIndex]].every((register) => nextOutput.has(register));
+          if (!sameInput || !sameOutput) changed = true;
+          inputs[instructionIndex] = nextInput;
+          outputs[instructionIndex] = nextOutput;
+        });
+      }
+
+      const required = new Set();
+      reachable.forEach((instructionIndex) => effects[instructionIndex].reads.forEach((register) => {
+        if (!inputs[instructionIndex].has(register)) required.add(register);
+      }));
+      return [...required].sort((left, right) => (regIndex(left.toUpperCase()) ?? 99) - (regIndex(right.toUpperCase()) ?? 99));
     }
 
-    function formatTarget(target) {
+    function inputState() {
+      const inputs = [...document.querySelectorAll("#inputFields [data-reg-input]")];
+      return {
+        inputs,
+        missing: inputs.filter((input) => input.value.trim() === ""),
+        invalid: inputs.filter((input) => input.value.trim() !== "" && !Number.isFinite(Number(input.value))),
+      };
+    }
+
+    function updateRunReadiness() {
+      const { missing, invalid } = inputState();
+      const hasSource = Boolean(sourceEditor.value.trim());
+      runBtn.disabled = running || !hasSource || missing.length > 0 || invalid.length > 0;
+      const guidance = $("inputGuidance");
+      guidance.classList.toggle("error", missing.length > 0 || invalid.length > 0);
+      if (!hasSource) guidance.textContent = "Write or load a program to identify the registers it reads before assigning.";
+      else if (invalid.length) guidance.textContent = `Enter a valid number for ${invalid.map((input) => input.dataset.regInput).join(", ")}.`;
+      else if (missing.length) guidance.textContent = `Required before running: ${missing.map((input) => input.dataset.regInput).join(", ")}.`;
+      else if (inputState().inputs.length) guidance.textContent = "All required starting values are configured.";
+      else guidance.textContent = "No external register values are needed; runtime registers such as sp are already initialized.";
+    }
+
+    function refreshInferredInputs() {
+      const previous = {};
+      document.querySelectorAll("#inputFields [data-reg-input]").forEach((input) => { previous[input.dataset.regInput] = input.value; });
+      const registers = inferredInputRegisters(sourceEditor.value);
+      $("inputFields").innerHTML = registers.map((register) => {
+        const value = previous[register] ?? restoredSettings[`input-${register}`] ?? "";
+        return `<label>${escapeHtml(register)}<input id="input-${escapeHtml(register)}" data-reg-input="${escapeHtml(register)}" type="text" inputmode="numeric" required value="${escapeHtml(value)}" /></label>`;
+      }).join("");
+      document.querySelectorAll("#inputFields [data-reg-input]").forEach((input) => input.addEventListener("input", () => { updateConfigSummary(); updateRunReadiness(); persistDraft(); }));
+      updateConfigSummary();
+      updateRunReadiness();
+    }
+
+    function updateConfigSummary() {
+      const config = collectResultConfig();
+      const resultText = config.kind === "array"
+        ? `array via ${config.ptr_register}/${config.length_register}`
+        : config.register;
+      const inputInfo = inputState();
+      const inputs = inputInfo.inputs.map((input) => input.dataset.regInput);
+      const inputText = !sourceEditor.value.trim() ? "load a program" : inputs.length ? `${inputs.join(", ")}${inputInfo.missing.length || inputInfo.invalid.length ? " (values required)" : ""}` : "none needed";
+      const limit = Math.max(1, Number($("execMaxSteps").value) || 10000).toLocaleString();
+      $("configSummary").innerHTML = `<span>Result <strong>${escapeHtml(resultText)}</strong></span><span>Starting values <strong>${escapeHtml(inputText)}</strong></span><span>Limit <strong>${escapeHtml(limit)} steps</strong></span>`;
+    }
+
+    function savedSettings() {
+      const values = {};
+      document.querySelectorAll("#configDetails input, #configDetails select, #inputFields input, #speedInput").forEach((control) => {
+        const key = control.id || control.dataset.regInput;
+        if (key) values[key] = control.value;
+      });
+      return values;
+    }
+
+    function persistDraft() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ source: sourceEditor.value, settings: savedSettings() }));
+      } catch (_) {}
+    }
+
+    function restoreDraft() {
+      try {
+        const draft = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!draft || typeof draft !== "object") return false;
+        if (typeof draft.source === "string") sourceEditor.value = draft.source;
+        if (draft.settings && typeof draft.settings === "object") {
+          restoredSettings = draft.settings;
+          document.querySelectorAll("#configDetails input, #configDetails select, #speedInput").forEach((control) => {
+            const key = control.id || control.dataset.regInput;
+            if (key && Object.prototype.hasOwnProperty.call(draft.settings, key)) control.value = draft.settings[key];
+          });
+        }
+        return Boolean(sourceEditor.value.trim());
+      } catch (_) { return false; }
+    }
+
+    function regIndex(name) {
+      if (typeof name !== "string") return null;
+      const normalized = name.toUpperCase().replace("/FP", "");
+      if (/^X(?:[0-9]|[12][0-9]|3[01])$/.test(normalized)) return Number(normalized.slice(1));
+      return Object.prototype.hasOwnProperty.call(REG_TO_X, normalized) ? REG_TO_X[normalized] : null;
+    }
+
+    function normalizedInstruction(instruction) {
+      if (typeof instruction === "string") return { kind: instruction, data: null };
+      if (instruction && typeof instruction === "object") {
+        const keys = Object.keys(instruction);
+        if (keys.length === 1) return { kind: keys[0], data: instruction[keys[0]] };
+      }
+      return { kind: "Unknown", data: instruction };
+    }
+
+    function targetName(target) {
       if (!target || typeof target !== "object") return "?";
       if (Object.prototype.hasOwnProperty.call(target, "Address")) return `@${target.Address}`;
       if (Object.prototype.hasOwnProperty.call(target, "Label")) return target.Label;
       return "?";
     }
 
-    function formatJumpTarget(target) {
+    function jumpTargetName(target) {
       if (!target || typeof target !== "object") return "?";
-      if (Object.prototype.hasOwnProperty.call(target, "Direct")) return formatTarget(target.Direct);
-      if (Object.prototype.hasOwnProperty.call(target, "Indirect")) {
-        const m = target.Indirect || {};
-        return `${m.offset ?? 0}(${m.register ?? "?"})`;
-      }
+      if (target.Direct) return targetName(target.Direct);
+      if (target.Indirect) return `${target.Indirect.offset ?? 0}(${target.Indirect.register ?? "?"})`;
       return "?";
     }
 
-    function formatInstr(instr) {
-      const n = normalizeInstruction(instr);
-      const data = n.data || {};
-
-      if (n.kind === "Nil") return "Nil";
-      if (n.kind === "R") return `${data.op_code} ${data.rd}, ${data.rs1}, ${data.rs2}`;
-      if (n.kind === "I") return `${data.op_code} ${data.rd}, ${data.rs}, ${data.imm}`;
-      if (n.kind === "L") return `${data.op_code} ${data.rd}, ${data.address.offset}(${data.address.register})`;
-      if (n.kind === "S") return `${data.op_code} ${data.rs}, ${data.address.offset}(${data.address.register})`;
-      if (n.kind === "B") return `${data.op_code} ${data.rs1}, ${data.rs2}, ${formatTarget(data.target)}`;
-      if (n.kind === "J") return `${data.op_code} ${data.rd}, ${formatJumpTarget(data.target)}`;
-
-      return JSON.stringify(instr);
+    function instructionText(instruction) {
+      const { kind, data: raw } = normalizedInstruction(instruction);
+      const data = raw || {};
+      if (kind === "Nil") return "Nil";
+      if (kind === "R") return `${data.op_code} ${data.rd}, ${data.rs1}, ${data.rs2}`;
+      if (kind === "I") return `${data.op_code} ${data.rd}, ${data.rs}, ${data.imm}`;
+      if (kind === "L") return `${data.op_code} ${data.rd}, ${data.address?.offset}(${data.address?.register})`;
+      if (kind === "S") return `${data.op_code} ${data.rs}, ${data.address?.offset}(${data.address?.register})`;
+      if (kind === "B") return `${data.op_code} ${data.rs1}, ${data.rs2}, ${targetName(data.target)}`;
+      if (kind === "J") return `${data.op_code} ${data.rd}, ${jumpTargetName(data.target)}`;
+      return typeof instruction === "string" ? instruction : JSON.stringify(instruction);
     }
 
-    function computeChangedRegs(prevRegs, curRegs) {
-      if (!prevRegs || !curRegs) return new Set();
-      const changed = new Set();
-      for (let i = 0; i < curRegs.length; i++) {
-        if (curRegs[i] !== prevRegs[i]) changed.add(i);
-      }
-      return changed;
-    }
-
-    function computeOperandRoles(instr) {
-      const n = normalizeInstruction(instr);
-      const data = n.data || {};
-
-      if (n.kind === "R") {
-        return {
-          lhs: regNameToIndex(data.rs1),
-          rhs: regNameToIndex(data.rs2),
-          dst: regNameToIndex(data.rd),
-        };
-      }
-
-      if (n.kind === "I") {
-        return {
-          lhs: regNameToIndex(data.rs),
-          rhs: null,
-          dst: regNameToIndex(data.rd),
-        };
-      }
-
-      if (n.kind === "B") {
-        return {
-          lhs: regNameToIndex(data.rs1),
-          rhs: regNameToIndex(data.rs2),
-          dst: null,
-        };
-      }
-
-      if (n.kind === "L") {
-        return {
-          lhs: regNameToIndex(data.address?.register),
-          rhs: null,
-          dst: regNameToIndex(data.rd),
-        };
-      }
-
-      if (n.kind === "S") {
-        return {
-          lhs: regNameToIndex(data.address?.register),
-          rhs: regNameToIndex(data.rs),
-          dst: null,
-        };
-      }
-
-      if (n.kind === "J") {
-        const indirect = data.target && data.target.Indirect ? regNameToIndex(data.target.Indirect.register) : null;
-        return {
-          lhs: indirect,
-          rhs: null,
-          dst: regNameToIndex(data.rd),
-        };
-      }
-
+    function operandRoles(instruction) {
+      const { kind, data: raw } = normalizedInstruction(instruction);
+      const data = raw || {};
+      if (kind === "R") return { lhs: regIndex(data.rs1), rhs: regIndex(data.rs2), dst: regIndex(data.rd) };
+      if (kind === "I") return { lhs: regIndex(data.rs), rhs: null, dst: regIndex(data.rd) };
+      if (kind === "B") return { lhs: regIndex(data.rs1), rhs: regIndex(data.rs2), dst: null };
+      if (kind === "L") return { lhs: regIndex(data.address?.register), rhs: null, dst: regIndex(data.rd) };
+      if (kind === "S") return { lhs: regIndex(data.address?.register), rhs: regIndex(data.rs), dst: null };
+      if (kind === "J") return { lhs: regIndex(data.target?.Indirect?.register), rhs: null, dst: regIndex(data.rd) };
       return { lhs: null, rhs: null, dst: null };
     }
 
+    function changedRegisters(previous, current) {
+      const changed = new Set();
+      if (!previous || !current) return changed;
+      current.forEach((value, i) => { if (value !== previous[i]) changed.add(i); });
+      return changed;
+    }
+
+    function registerMarkup(index, value, roles, changed) {
+      const tags = [];
+      if (roles.lhs === index) tags.push("read");
+      if (roles.rhs === index) tags.push("read");
+      if (roles.dst === index) tags.push("written");
+      if (changed.has(index)) tags.push("changed");
+      const classes = ["register", tags.length ? "relevant" : "", changed.has(index) ? "changed" : ""].filter(Boolean).join(" ");
+      return `<div class="${classes}"><div class="register-head"><span>x${index} (${escapeHtml(ABI[index] ?? "?")})</span><span class="role">${escapeHtml([...new Set(tags)].join(", "))}</span></div><div class="register-value">${escapeHtml(value)}</div></div>`;
+    }
+
+    function renderRegisters(state, previousState) {
+      const registers = state?.reg_file?.regs;
+      if (!Array.isArray(registers)) {
+        $("regsContainer").innerHTML = '<div class="empty">No register state.</div>';
+        $("allRegsContainer").innerHTML = '<div class="empty">No register state.</div>';
+        return;
+      }
+      const previous = previousState?.reg_file?.regs;
+      const changed = changedRegisters(previous, registers);
+      const roles = operandRoles(state.instr);
+      const relevant = new Set([...changed, roles.lhs, roles.rhs, roles.dst].filter((value) => value !== null));
+      $("regsContainer").innerHTML = relevant.size
+        ? [...relevant].sort((a, b) => a - b).map((i) => registerMarkup(i, registers[i], roles, changed)).join("")
+        : '<div class="empty">This instruction has no register operands or changes.</div>';
+      $("allRegsContainer").innerHTML = registers.slice(0, 32).map((value, i) => registerMarkup(i, value, roles, changed)).join("");
+    }
+
     function activeBlockForPc(pc) {
-      if (!analysis || !Array.isArray(analysis.blocks)) return null;
-      return analysis.blocks.find((block) => pc >= block.start_pc && pc <= block.end_pc) || null;
+      return Array.isArray(analysis?.blocks) ? analysis.blocks.find((block) => pc >= block.start_pc && pc <= block.end_pc) || null : null;
     }
 
     function activeLoopsForBlock(blockId) {
-      if (!analysis || blockId === null || !Array.isArray(analysis.loops)) return [];
-      return analysis.loops.filter((loop) => Array.isArray(loop.blocks) && loop.blocks.includes(blockId));
-    }
-
-    function renderRegisters(state, prev) {
-      const curRegs = state?.reg_file?.regs || [];
-      const prevRegs = prev?.reg_file?.regs || null;
-      const changed = computeChangedRegs(prevRegs, curRegs);
-      const roles = computeOperandRoles(state?.instr);
-
-      regsContainer.innerHTML = curRegs.map((value, index) => {
-        const classes = ["reg"];
-        if (changed.has(index)) classes.push("changed");
-        if (roles.lhs === index) classes.push("role-lhs");
-        if (roles.rhs === index) classes.push("role-rhs");
-        if (roles.dst === index) classes.push("role-dst");
-
-        const tags = [];
-        if (roles.lhs === index) tags.push("lhs");
-        if (roles.rhs === index) tags.push("rhs");
-        if (roles.dst === index) tags.push("dest");
-
-        return `
-          <div class="${classes.join(" ")}">
-            <div class="reg-head">
-              <span>x${index} (${ABI[index] ?? "?"})</span>
-              <span>${tags.map((tag) => `<span class="pill">${tag}</span>`).join("")}</span>
-            </div>
-            <div class="reg-value">${value}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function formatMemoryValue(event) {
-      if (!event) return "?";
-      const hexWidth = Math.max(2, (event.width || 1) * 2);
-      const normalized = Number(event.value ?? 0) >>> 0;
-      return `${event.value} (0x${normalized.toString(16).padStart(hexWidth, "0")})`;
+      return Array.isArray(analysis?.loops) && blockId !== null ? analysis.loops.filter((loop) => Array.isArray(loop.blocks) && loop.blocks.includes(blockId)) : [];
     }
 
     function renderMemory(state) {
       const events = Array.isArray(state?.memory_events) ? state.memory_events : [];
-      memoryMeta.textContent = events.length
-        ? `${events.length} access${events.length === 1 ? "" : "es"} in this step`
-        : "Per-step load/store events.";
-
-      if (events.length === 0) {
-        memoryContainer.innerHTML = `<div class="empty">No memory access in this step.</div>`;
-        return;
-      }
-
-      memoryContainer.innerHTML = events.map((event) => `
-        <div class="memory-event ${String(event.kind || "").toLowerCase()}">
-          <div><strong>${event.kind}</strong> ${event.width}-byte @ ${event.address}</div>
-          <div class="small">Value: ${formatMemoryValue(event)}</div>
-          ${event.previous_value === null || event.previous_value === undefined
-            ? ""
-            : `<div class="small">Previous: ${event.previous_value}</div>`}
-        </div>
-      `).join("");
-    }
-
-    function renderRunMetadata() {
-      const run = trace?.run || {};
-      entryLabelMetric.textContent = run.entry_label ?? "-";
-      entryPcMetric.textContent = run.entry_pc ?? "-";
-
-      const inputs = Array.isArray(run.input_registers) ? run.input_registers : [];
-      runMeta.textContent = inputs.length
-        ? `${inputs.length} explicit input${inputs.length === 1 ? "" : "s"}`
-        : "No explicit register inputs.";
-
-      if (inputs.length === 0) {
-        inputRegsContainer.innerHTML = `<div class="empty">No explicit input registers.</div>`;
-        return;
-      }
-
-      inputRegsContainer.innerHTML = inputs.map((input) => `
-        <div class="input-reg">
-          <div><strong>${formatRegisterName(input.register)}</strong></div>
-          <div class="small">Value: ${input.value}</div>
-        </div>
-      `).join("");
+      $("memoryMeta").textContent = events.length ? `${events.length} access${events.length === 1 ? "" : "es"}` : "Current step";
+      $("memoryContainer").innerHTML = events.length ? events.map((event) => {
+        const kind = String(event.kind || "access");
+        const opcode = String(event.opcode || normalizedInstruction(state?.instr).data?.op_code || "").toUpperCase();
+        const register = String(event.register || (kind === "Load" ? normalizedInstruction(state?.instr).data?.rd : normalizedInstruction(state?.instr).data?.rs) || "?").toLowerCase();
+        const address = event.address_hex || event.address;
+        const rawValue = event.raw_value || event.value;
+        const registerValue = event.register_value ?? event.value;
+        const extension = ["LB", "LH", "LW"].includes(opcode) ? " (sign-extended)" : (["LBU", "LHU"].includes(opcode) ? " (zero-extended)" : "");
+        if (kind === "Load") {
+          return `<div class="list-item memory load"><strong>${escapeHtml(opcode || "Load")}</strong> Load ${escapeHtml(event.width)} byte${event.width === 1 ? "" : "s"} from <code>${escapeHtml(address)}</code><div class="muted small">Raw bits: <code>${escapeHtml(rawValue)}</code></div><div class="muted small">Register ${escapeHtml(register)}: ${escapeHtml(registerValue)}${extension}</div></div>`;
+        }
+        const previousRaw = event.previous_raw_value ?? event.previous_value;
+        const previous = previousRaw === null || previousRaw === undefined ? "" : `<div class="muted small">Previous bits: <code>${escapeHtml(previousRaw)}</code></div>`;
+        return `<div class="list-item memory store"><strong>${escapeHtml(opcode || "Store")}</strong> Store ${escapeHtml(event.width)} byte${event.width === 1 ? "" : "s"} to <code>${escapeHtml(address)}</code><div class="muted small">Stored bits: <code>${escapeHtml(rawValue)}</code></div><div class="muted small">Source ${escapeHtml(register)}: ${escapeHtml(registerValue)}</div>${previous}</div>`;
+      }).join("") : '<div class="empty">No memory access in this step.</div>';
     }
 
     function renderResult() {
       if (!result) {
-        resultMeta.textContent = "Run through the local service to decode the final return value.";
-        resultSummary.innerHTML = `<span class="empty">No interpreted result available.</span>`;
-        resultDetails.innerHTML = "";
+        $("resultMeta").textContent = "Scalar result defaults to a0.";
+        $("resultSummary").innerHTML = '<span class="empty">No interpreted result.</span>';
+        $("resultDetails").innerHTML = "";
         return;
       }
-
       if (result.kind === "scalar") {
-        resultMeta.textContent = `Scalar result from ${formatRegisterName(result.register)}`;
-        resultSummary.innerHTML = `<code>${result.value}</code>`;
-        resultDetails.innerHTML = `
-          <div class="meta-item">
-            <div class="label">Raw Value</div>
-            <strong>${result.raw_value}</strong>
-          </div>
-        `;
+        $("resultMeta").textContent = `Scalar from ${String(result.register || "a0").toLowerCase()}`;
+        $("resultSummary").innerHTML = `<code>${escapeHtml(result.value)}</code>`;
+        $("resultDetails").innerHTML = `<div class="list-item"><span class="muted small">Raw value</span><div>${escapeHtml(result.raw_value)}</div></div>`;
         return;
       }
-
-      resultMeta.textContent = `Array result at ${formatRegisterName(result.ptr_register)} with length from ${formatRegisterName(result.length_register)}`;
-      resultSummary.innerHTML = `<code>${result.raw_pointer}</code>`;
-      resultDetails.innerHTML = `
-        <div class="meta-item">
-          <div class="label">Length</div>
-          <strong>${result.length}</strong>
-        </div>
-        <div class="meta-item">
-          <div class="label">Element Width</div>
-          <strong>${result.elem_width}</strong>
-        </div>
-        <div class="meta-item">
-          <div class="label">Signed</div>
-          <strong>${result.signed ? "yes" : "no"}</strong>
-        </div>
-        <div class="meta-item">
-          <div class="label">Decoded Values</div>
-          <strong>${Array.isArray(result.values) && result.values.length ? result.values.join(", ") : "-"}</strong>
-        </div>
-        ${result.error ? `
-          <div class="meta-item">
-            <div class="label">Decode Error</div>
-            <strong>${result.error}</strong>
-          </div>
-        ` : ""}
-      `;
+      $("resultMeta").textContent = `Array at ${String(result.ptr_register || "a0").toLowerCase()}`;
+      $("resultSummary").innerHTML = `<code>[${escapeHtml(Array.isArray(result.values) ? result.values.join(", ") : "")}]</code>`;
+      $("resultDetails").innerHTML = [
+        ["Pointer", result.raw_pointer], ["Length", result.length], ["Element width", result.elem_width], ["Signed", result.signed ? "yes" : "no"]
+      ].map(([label, value]) => `<div class="list-item"><span class="muted small">${label}</span><div>${escapeHtml(value)}</div></div>`).join("") + (result.error ? `<div class="error-box">${escapeHtml(result.error)}</div>` : "");
     }
 
-    function setServerStatus(message, isError = false) {
-      serverStatus.textContent = message;
-      serverStatus.classList.toggle("error", Boolean(isError));
+    function renderAnalysis(activeBlockId) {
+      const blocks = Array.isArray(analysis?.blocks) ? analysis.blocks : [];
+      $("blocksContainer").innerHTML = blocks.length ? blocks.map((block) => `<div class="list-item ${block.id === activeBlockId ? "active" : ""}"><strong>Block ${escapeHtml(block.id)}</strong><div class="muted small">PC ${escapeHtml(block.start_pc)} → ${escapeHtml(block.end_pc)}</div><div class="muted small">Instructions: ${escapeHtml((block.instruction_pcs || []).join(", "))}</div></div>`).join("") : '<div class="empty">No CFG loaded.</div>';
+      const loops = Array.isArray(analysis?.loops) ? analysis.loops : [];
+      $("loopsContainer").innerHTML = loops.length ? loops.map((loop) => `<div class="list-item ${Array.isArray(loop.blocks) && loop.blocks.includes(activeBlockId) ? "active" : ""}"><strong>Header ${escapeHtml(loop.header)}</strong><div class="muted small">Back edge from block ${escapeHtml(loop.back_edge_from)}; members: ${escapeHtml((loop.blocks || []).join(", "))}</div></div>`).join("") : '<div class="empty">No loops detected or no analysis loaded.</div>';
+      const edges = Array.isArray(analysis?.edges) && activeBlockId !== null ? analysis.edges.filter((edge) => edge.from === activeBlockId) : [];
+      $("edgesContainer").innerHTML = edges.length ? edges.map((edge) => `<div class="list-item"><strong>${escapeHtml(edge.kind)}</strong><div class="muted small">Block ${escapeHtml(edge.from)} → block ${escapeHtml(edge.to)}</div></div>`).join("") : '<div class="empty">No outgoing edges for the active block.</div>';
     }
 
-    function collectRegisterInputs() {
-      return Array.from(document.querySelectorAll("[data-reg-input]"))
-        .map((input) => ({
-          register: input.getAttribute("data-reg-input"),
-          value: input.value.trim(),
-        }))
-        .filter((input) => input.value !== "")
-        .map((input) => ({
-          register: input.register,
-          value: Number(input.value),
-        }))
-        .filter((input) => Number.isFinite(input.value));
+    function renderRunMetadata() {
+      const run = trace?.run;
+      if (!run) { $("runMetadata").innerHTML = '<div class="empty">No run metadata.</div>'; return; }
+      const inputs = Array.isArray(run.input_registers) ? run.input_registers : [];
+      $("runMetadata").innerHTML = `<div class="metadata"><span>Entry label <strong>${escapeHtml(run.entry_label ?? "–")}</strong></span><span>Entry PC <strong>${escapeHtml(run.entry_pc ?? "–")}</strong></span><span>Inputs <strong>${escapeHtml(inputs.length)}</strong></span></div>${inputs.length ? `<div class="item-list section">${inputs.map((input) => `<div class="list-item"><strong>${escapeHtml(String(input.register).toLowerCase())}</strong>: ${escapeHtml(input.value)}</div>`).join("")}</div>` : ""}`;
     }
 
-    function syncResultControls() {
-      const isArray = resultKind.value === "array";
-      document.querySelectorAll("[data-result-field='scalar-register']").forEach((node) => {
-        node.hidden = isArray;
-      });
-      ["array-ptr", "array-len", "array-width", "array-signed"].forEach((field) => {
-        document.querySelectorAll(`[data-result-field='${field}']`).forEach((node) => {
-          node.hidden = !isArray;
-        });
-      });
+    function updatePlaybackControls(hasStates) {
+      const count = hasStates ? trace.states.length : 0;
+      stepSlider.disabled = !hasStates;
+      playBtn.disabled = !hasStates || count < 2;
+      prevBtn.disabled = !hasStates || index === 0;
+      nextBtn.disabled = !hasStates || index >= count - 1;
+      stepSlider.min = 0;
+      stepSlider.max = Math.max(0, count - 1);
+      stepSlider.value = hasStates ? index : 0;
+      $("stepLabel").textContent = hasStates ? `${index + 1} / ${count}` : "0 / 0";
     }
 
-    function collectResultConfig() {
-      if (resultKind.value === "array") {
-        return {
-          kind: "array",
-          ptr_register: resultPtrRegister.value.trim() || "a0",
-          length_register: resultLengthRegister.value.trim() || "a1",
-          elem_width: Number(resultElemWidth.value) || 4,
-          signed: resultSigned.value !== "false",
-        };
-      }
-
-      return {
-        kind: "scalar",
-        register: resultRegister.value.trim() || "a0",
-      };
-    }
-
-    function renderStatus(state, activeBlock, loops) {
-      const pills = [];
-      if (state.branch_taken === true) pills.push(`<span class="pill taken">branch taken</span>`);
-      if (state.branch_taken === false) pills.push(`<span class="pill">branch not taken</span>`);
-      if (state.terminated) pills.push(`<span class="pill halt">terminated</span>`);
-      if (activeBlock) pills.push(`<span class="pill">block ${activeBlock.id}</span>`);
-      loops.forEach((loop) => pills.push(`<span class="pill" style="background: var(--loop)">loop header ${loop.header}</span>`));
-      statusPills.innerHTML = pills.join("");
-    }
-
-    function renderBlocks(activeBlockId) {
-      if (!analysis || !Array.isArray(analysis.blocks) || analysis.blocks.length === 0) {
-        blocksContainer.innerHTML = `<div class="empty">No CFG loaded.</div>`;
-        return;
-      }
-
-      blocksContainer.innerHTML = analysis.blocks.map((block) => `
-        <div class="block ${block.id === activeBlockId ? "active" : ""}">
-          <div><strong>Block ${block.id}</strong></div>
-          <div class="small">PC ${block.start_pc} -> ${block.end_pc}</div>
-          <div class="small">Instructions: ${(block.instruction_pcs || []).join(", ")}</div>
-        </div>
-      `).join("");
-    }
-
-    function renderLoops(activeBlockId) {
-      if (!analysis || !Array.isArray(analysis.loops) || analysis.loops.length === 0) {
-        loopsContainer.innerHTML = `<div class="empty">No loops detected or no analysis loaded.</div>`;
-        return;
-      }
-
-      loopsContainer.innerHTML = analysis.loops.map((loop) => {
-        const active = activeBlockId !== null && Array.isArray(loop.blocks) && loop.blocks.includes(activeBlockId);
-        return `
-          <div class="loop ${active ? "active" : ""}">
-            <div><strong>Header ${loop.header}</strong></div>
-            <div class="small">Back edge from block ${loop.back_edge_from}</div>
-            <div class="small">Members: ${(loop.blocks || []).join(", ")}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function renderEdges(activeBlockId) {
-      if (!analysis || activeBlockId === null || !Array.isArray(analysis.edges)) {
-        edgesContainer.innerHTML = `<div class="empty">No active block.</div>`;
-        return;
-      }
-
-      const edges = analysis.edges.filter((edge) => edge.from === activeBlockId);
-      if (edges.length === 0) {
-        edgesContainer.innerHTML = `<div class="empty">No outgoing edges for this block.</div>`;
-        return;
-      }
-
-      edgesContainer.innerHTML = edges.map((edge) => `
-        <div class="edge">
-          <div><strong>${edge.kind}</strong></div>
-          <div class="small">Block ${edge.from} -> Block ${edge.to}</div>
-        </div>
-      `).join("");
+    function renderEmptyTrace(message = "No trace loaded.") {
+      stop();
+      showInspector(false);
+      updatePlaybackControls(false);
+      setStatus("traceStatus", message);
+      $("instrLine").innerHTML = '<span class="empty">Run a program or import a trace.</span>';
+      ["stepMetric", "pcMetric", "nextPcMetric", "branchMetric", "blockMetric", "loopMetric"].forEach((id) => { $(id).textContent = "–"; });
+      $("stateJson").textContent = "No state loaded.";
+      renderRegisters(null, null);
+      renderMemory(null);
+      renderAnalysis(null);
+      renderRunMetadata();
     }
 
     function render() {
-      if (!trace || !Array.isArray(trace.states) || trace.states.length === 0) return;
-
-      const states = trace.states;
-      const state = states[idx];
-      const prev = idx > 0 ? states[idx - 1] : null;
+      const states = trace?.states;
+      if (!Array.isArray(states) || states.length === 0) { renderEmptyTrace(trace ? "Trace contains no states." : "No trace loaded."); return; }
+      showInspector(true);
+      index = Math.max(0, Math.min(index, states.length - 1));
+      const state = states[index];
+      const previous = index > 0 ? states[index - 1] : null;
       const activeBlock = activeBlockForPc(state.pc);
-      const activeLoops = activeLoopsForBlock(activeBlock ? activeBlock.id : null);
-
-      stepSlider.value = idx;
-      stepLabel.textContent = `${idx + 1} / ${states.length}`;
-
-      instrLine.innerHTML = `<code>${formatInstr(state.instr)}</code>`;
-      stateJson.textContent = JSON.stringify(state, null, 2);
-
-      stepMetric.textContent = state.step;
-      pcMetric.textContent = state.pc;
-      nextPcMetric.textContent = state.next_pc;
-      branchMetric.textContent =
-        state.branch_taken === null ? "-" : (state.branch_taken ? "taken" : "not taken");
-      deltaMetric.textContent = state.next_pc - state.pc;
-      blockMetric.textContent = activeBlock ? activeBlock.id : "-";
-      loopMetric.textContent = activeLoops.length ? activeLoops.map((loop) => loop.header).join(", ") : "-";
-
-      renderRunMetadata();
-      renderStatus(state, activeBlock, activeLoops);
-      renderRegisters(state, prev);
+      const loops = activeLoopsForBlock(activeBlock?.id ?? null);
+      $("instrLine").textContent = instructionText(state.instr);
+      $("stepMetric").textContent = state.step ?? index;
+      $("pcMetric").textContent = state.pc ?? "–";
+      $("nextPcMetric").textContent = state.next_pc ?? "–";
+      $("branchMetric").textContent = state.branch_taken === null || state.branch_taken === undefined ? (state.terminated ? "terminated" : "–") : (state.branch_taken ? "taken" : "not taken");
+      $("blockMetric").textContent = activeBlock?.id ?? "–";
+      $("loopMetric").textContent = loops.length ? loops.map((loop) => loop.header).join(", ") : "–";
+      $("stateJson").textContent = JSON.stringify(state, null, 2);
+      setStatus("traceStatus", state.terminated ? "Program terminated at this step." : "Trace ready.", state.terminated ? "success" : "");
+      updatePlaybackControls(true);
+      renderRegisters(state, previous);
       renderMemory(state);
       renderResult();
-      renderBlocks(activeBlock ? activeBlock.id : null);
-      renderLoops(activeBlock ? activeBlock.id : null);
-      renderEdges(activeBlock ? activeBlock.id : null);
-
-      prevBtn.disabled = idx === 0;
-      nextBtn.disabled = idx >= states.length - 1;
+      renderAnalysis(activeBlock?.id ?? null);
+      renderRunMetadata();
     }
 
     function stop() {
-      if (timer) clearInterval(timer);
+      if (timer) window.clearInterval(timer);
       timer = null;
       playBtn.textContent = "Play";
     }
 
     function play() {
-      if (!trace || !Array.isArray(trace.states)) return;
-      stop();
-      const speedMs = Math.max(50, Number(speedInput.value) || 400);
+      if (!Array.isArray(trace?.states) || trace.states.length < 2) return;
+      if (index >= trace.states.length - 1) index = 0;
       playBtn.textContent = "Pause";
-      timer = setInterval(() => {
-        if (idx >= trace.states.length - 1) {
-          stop();
-          return;
-        }
-        idx += 1;
+      timer = window.setInterval(() => {
+        if (index >= trace.states.length - 1) { stop(); updatePlaybackControls(true); return; }
+        index += 1;
         render();
-      }, speedMs);
+      }, Math.max(50, Number(speedInput.value) || 400));
     }
 
-    prevBtn.onclick = () => {
-      stop();
-      if (idx > 0) {
-        idx -= 1;
+    function collectRegisterInputs() {
+      return [...document.querySelectorAll("[data-reg-input]")].map((input) => ({ register: input.dataset.regInput, raw: input.value.trim() })).filter((input) => input.raw !== "").map((input) => ({ register: input.register, value: Number(input.raw) })).filter((input) => Number.isFinite(input.value));
+    }
+
+    function collectResultConfig() {
+      if (resultKind.value === "array") return { kind: "array", ptr_register: $("resultPtrRegister").value.trim() || "a0", length_register: $("resultLengthRegister").value.trim() || "a1", elem_width: Number($("resultElemWidth").value) || 4, signed: $("resultSigned").value !== "false" };
+      return { kind: "scalar", register: $("resultRegister").value.trim() || "a0" };
+    }
+
+    function syncResultControls() {
+      const array = resultKind.value === "array";
+      document.querySelectorAll("[data-result-field='scalar-register']").forEach((node) => { node.hidden = array; });
+      ["array-ptr", "array-len", "array-width", "array-signed"].forEach((field) => document.querySelectorAll(`[data-result-field='${field}']`).forEach((node) => { node.hidden = !array; }));
+      updateConfigSummary();
+    }
+
+    async function importJson(file, type) {
+      const statusId = type === "trace" ? "traceImportStatus" : "analysisImportStatus";
+      setStatus(statusId, `Reading ${file.name}…`, "loading");
+      try {
+        const parsed = JSON.parse(await file.text());
+        if (!parsed || typeof parsed !== "object") throw new Error("Expected a JSON object.");
+        if (type === "trace") {
+          if (!Array.isArray(parsed.states)) throw new Error("Trace JSON must contain a states array.");
+          stop(); trace = parsed; result = null; index = 0;
+          setStatus(statusId, `Imported ${file.name} (${parsed.states.length} states).`, "success");
+        } else {
+          if (!Array.isArray(parsed.blocks) || !Array.isArray(parsed.edges) || !Array.isArray(parsed.loops)) throw new Error("Analysis JSON must contain blocks, edges, and loops arrays.");
+          analysis = parsed;
+          setStatus(statusId, `Imported ${file.name} (${parsed.blocks.length} blocks, ${parsed.loops.length} loops).`, "success");
+        }
         render();
+        if (type === "trace" && parsed.states.length) $("inspectStage").focus();
+      } catch (error) {
+        setStatus(statusId, `${file.name}: ${error.message || "Invalid JSON."}`, "error");
+      } finally {
+        if (type === "trace") traceInput.value = ""; else analysisInput.value = "";
       }
-    };
-
-    nextBtn.onclick = () => {
-      stop();
-      if (trace && idx < trace.states.length - 1) {
-        idx += 1;
-        render();
-      }
-    };
-
-    playBtn.onclick = () => {
-      if (timer) stop();
-      else play();
-    };
-
-    stepSlider.oninput = (event) => {
-      stop();
-      idx = Number(event.target.value);
-      render();
-    };
-
-    traceInput.addEventListener("change", async (event) => {
-      stop();
-      const file = event.target.files?.[0];
-      if (!file) return;
-      trace = JSON.parse(await file.text());
-      result = null;
-      idx = 0;
-      stepSlider.min = 0;
-      stepSlider.max = Math.max(0, (trace.states?.length || 1) - 1);
-      render();
-    });
+    }
 
     sourceFileInput.addEventListener("change", async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      sourceText = await file.text();
-      sourceName.textContent = file.name;
-      setServerStatus(`Loaded ${file.name}. Ready to run.`);
-    });
-
-    analysisInput.addEventListener("change", async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      analysis = JSON.parse(await file.text());
-      analysisMeta.textContent = `entry block ${analysis.entry_block}, ${analysis.blocks?.length || 0} blocks, ${analysis.loops?.length || 0} loops`;
-      if (trace) render();
-      else {
-        renderBlocks(null);
-        renderLoops(null);
-        renderEdges(null);
-      }
+      try {
+        sourceEditor.value = await file.text();
+        restoredSettings = {};
+        $("sourceName").textContent = file.name;
+        setStatus("serverStatus", `Loaded ${file.name}. You can edit it before running.`, "success");
+        refreshInferredInputs();
+        persistDraft();
+        sourceEditor.focus();
+      } catch (error) {
+        setStatus("serverStatus", error.message || "Could not read the source file.", "error");
+      } finally { sourceFileInput.value = ""; }
     });
 
     runBtn.addEventListener("click", async () => {
-      if (!sourceText) {
-        setServerStatus("Select an assembly source file first.", true);
+      const source = sourceEditor.value;
+      if (!source.trim()) { setStatus("serverStatus", "Enter assembly source before running.", "error"); sourceEditor.focus(); return; }
+      const { missing, invalid } = inputState();
+      if (missing.length || invalid.length) {
+        setStatus("serverStatus", "Configure every required starting register value before running.", "error");
+        (missing[0] || invalid[0]).focus();
         return;
       }
-
-      setServerStatus("Running...");
+      stop(); running = true; runBtn.disabled = true; runBtn.textContent = "Running…"; setStatus("serverStatus", "Running…", "loading");
       try {
-        const response = await fetch("/api/run", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            source: sourceText,
-            max_steps: Math.max(1, Number(execMaxSteps.value) || 10000),
-            register_inputs: collectRegisterInputs(),
-            result: collectResultConfig(),
-          }),
-        });
-
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Request failed");
-        }
-
-        trace = payload.trace;
-        analysis = payload.analysis;
-        result = payload.result || null;
-        idx = 0;
-        stepSlider.min = 0;
-        stepSlider.max = Math.max(0, (trace.states?.length || 1) - 1);
-        analysisMeta.textContent = `entry block ${analysis.entry_block}, ${analysis.blocks?.length || 0} blocks, ${analysis.loops?.length || 0} loops`;
-        setServerStatus("Run completed.");
+        const response = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source, max_steps: Math.max(1, Number($("execMaxSteps").value) || 10000), register_inputs: collectRegisterInputs(), result: collectResultConfig() }) });
+        let payload;
+        try { payload = await response.json(); } catch (_) { throw new Error(`Server returned ${response.status} without valid JSON.`); }
+        if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`);
+        trace = payload.trace; analysis = payload.analysis; result = payload.result || null; index = 0;
+        setStatus("serverStatus", "Run completed.", "success");
         render();
+        if (Array.isArray(trace?.states) && trace.states.length) $("inspectStage").focus();
       } catch (error) {
-        setServerStatus(error.message || "Run failed", true);
-      }
+        setStatus("serverStatus", error.message || "Run failed.", "error");
+      } finally { running = false; runBtn.textContent = "Run program"; updateRunReadiness(); }
     });
 
+    prevBtn.addEventListener("click", () => { stop(); if (index > 0) { index -= 1; render(); } });
+    nextBtn.addEventListener("click", () => { stop(); if (Array.isArray(trace?.states) && index < trace.states.length - 1) { index += 1; render(); } });
+    playBtn.addEventListener("click", () => { if (timer) stop(); else play(); });
+    stepSlider.addEventListener("input", (event) => { stop(); index = Number(event.target.value); render(); });
+    speedInput.addEventListener("change", () => { if (timer) { stop(); play(); } });
+    traceInput.addEventListener("change", (event) => { const file = event.target.files?.[0]; if (file) importJson(file, "trace"); });
+    analysisInput.addEventListener("change", (event) => { const file = event.target.files?.[0]; if (file) importJson(file, "analysis"); });
     resultKind.addEventListener("change", syncResultControls);
+    exampleSelect.addEventListener("change", () => { $("exampleBtn").disabled = !exampleSelect.value; });
+    $("exampleBtn").addEventListener("click", () => {
+      const example = EXAMPLES[exampleSelect.value];
+      if (!example) return;
+      sourceEditor.value = example.source;
+      restoredSettings = {};
+      refreshInferredInputs();
+      document.querySelectorAll("[data-reg-input]").forEach((input) => { input.value = example.inputs?.[input.dataset.regInput] || ""; });
+      $("sourceName").textContent = `${exampleSelect.options[exampleSelect.selectedIndex].text} example`;
+      setStatus("serverStatus", "Example loaded. Edit it or run it as-is.", "success");
+      updateConfigSummary();
+      updateRunReadiness();
+      persistDraft();
+      sourceEditor.focus();
+    });
+    $("clearSourceBtn").addEventListener("click", () => {
+      if (sourceEditor.value && !window.confirm("Clear the current assembly source?")) return;
+      sourceEditor.value = "";
+      restoredSettings = {};
+      refreshInferredInputs();
+      $("sourceName").textContent = "No file loaded";
+      setStatus("serverStatus", "Enter assembly to begin.");
+      persistDraft();
+      sourceEditor.focus();
+    });
+    sourceEditor.addEventListener("input", () => {
+      if (!running) setStatus("serverStatus", sourceEditor.value.trim() ? "Ready to run." : "Enter assembly to begin.");
+      refreshInferredInputs();
+      persistDraft();
+    });
+    document.querySelectorAll("#configDetails input, #configDetails select, #speedInput").forEach((control) => control.addEventListener("input", () => { updateConfigSummary(); persistDraft(); }));
+
+    const restored = restoreDraft();
     syncResultControls();
+    refreshInferredInputs();
+    restoredSettings = {};
+    updateConfigSummary();
+    if (restored) { $("sourceName").textContent = "Restored draft"; setStatus("serverStatus", "Draft restored. Ready to run."); }
     renderResult();
+    renderEmptyTrace();
   </script>
 </body>
-
 </html>

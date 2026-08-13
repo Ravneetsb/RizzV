@@ -470,6 +470,78 @@ wrong:
     }
 
     #[test]
+    fn describes_every_supported_memory_instruction_exactly() {
+        let program = ".global main
+main:
+    li t0, -1
+    sb t0, 0(sp)
+    sh t0, 2(sp)
+    sw t0, 4(sp)
+    sd t0, -8(sp)
+    lb a0, 0(sp)
+    lbu a1, 0(sp)
+    lh a2, 2(sp)
+    lhu a3, 2(sp)
+    lw a4, 4(sp)
+    ld a5, -8(sp)
+    ret
+";
+        let assembler = assemble_source(program).expect("assemble memory operations");
+        let executor = execute_program(&assembler, &RunConfig::default(), 100)
+            .expect("execute memory operations");
+        let events = executor
+            .trace()
+            .states
+            .iter()
+            .flat_map(|state| &state.memory_events)
+            .collect::<Vec<_>>();
+
+        assert_eq!(events.len(), 10);
+        assert_eq!(
+            events
+                .iter()
+                .map(|event| event.opcode.as_str())
+                .collect::<Vec<_>>(),
+            ["sb", "sh", "sw", "sd", "lb", "lbu", "lh", "lhu", "lw", "ld"]
+        );
+
+        let expected_raw = [
+            "0xff",
+            "0xffff",
+            "0xffffffff",
+            "0xffffffffffffffff",
+            "0xff",
+            "0xff",
+            "0xffff",
+            "0xffff",
+            "0xffffffff",
+            "0xffffffffffffffff",
+        ];
+        assert_eq!(
+            events
+                .iter()
+                .map(|event| event.raw_value.as_str())
+                .collect::<Vec<_>>(),
+            expected_raw
+        );
+        assert_eq!(events[0].register, Register::T0);
+        assert_eq!(events[0].register_value, "-1");
+        assert_eq!(events[0].previous_raw_value.as_deref(), Some("0x00"));
+        assert_eq!(
+            events[3].previous_raw_value.as_deref(),
+            Some("0x0000000000000000")
+        );
+        assert_eq!(events[4].register, Register::A0);
+        assert_eq!(events[4].register_value, "-1");
+        assert_eq!(events[5].register_value, "255");
+        assert_eq!(events[7].register_value, "65535");
+        assert_eq!(events[9].register_value, "-1");
+        assert!(events
+            .iter()
+            .all(|event| event.address_hex.starts_with("0x")));
+    }
+
+    #[test]
     fn rejects_misaligned_word_access() {
         let program = ".global main
 main:

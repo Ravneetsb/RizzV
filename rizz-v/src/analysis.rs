@@ -189,7 +189,13 @@ fn find_loops(blocks: &[BasicBlock], edges: &[Edge], entry_pc: u64) -> Vec<LoopS
     let mut visited = HashSet::new();
     let mut stack = Vec::new();
     let mut back_edges = Vec::new();
-    dfs(start_block, &adjacency, &mut visited, &mut stack, &mut back_edges);
+    dfs(
+        start_block,
+        &adjacency,
+        &mut visited,
+        &mut stack,
+        &mut back_edges,
+    );
 
     let reverse = reverse_edges(edges);
     let mut loops = Vec::new();
@@ -247,7 +253,10 @@ fn dfs(
 fn reverse_edges(edges: &[Edge]) -> HashMap<usize, Vec<usize>> {
     let mut reverse = HashMap::new();
     for edge in edges {
-        reverse.entry(edge.to).or_insert_with(Vec::new).push(edge.from);
+        reverse
+            .entry(edge.to)
+            .or_insert_with(Vec::new)
+            .push(edge.from);
     }
     reverse
 }

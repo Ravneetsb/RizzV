@@ -150,23 +150,47 @@ impl Executor {
 
     fn execute_l(&mut self, inst: &LInst) -> Result<(u64, MemoryEvent), ExecErr> {
         let address = self.resolve_address(&inst.address);
-        let (value, width) = match inst.op_code {
-            LoadOpCode::LB => (self.memory.load8(address)? as i8 as i64, 1),
-            LoadOpCode::LBU => (self.memory.load8(address)? as i64, 1),
-            LoadOpCode::LH => (self.memory.load16(address)? as i16 as i64, 2),
-            LoadOpCode::LHU => (self.memory.load16(address)? as i64, 2),
-            LoadOpCode::LW => (self.memory.load32(address)? as i32 as i64, 4),
-            LoadOpCode::LD => (self.memory.load64(address)? as i64, 8),
+        let (value, width, raw_value) = match inst.op_code {
+            LoadOpCode::LB => {
+                let raw = self.memory.load8(address)?;
+                (raw as i8 as i64, 1, u64::from(raw))
+            }
+            LoadOpCode::LBU => {
+                let raw = self.memory.load8(address)?;
+                (i64::from(raw), 1, u64::from(raw))
+            }
+            LoadOpCode::LH => {
+                let raw = self.memory.load16(address)?;
+                (raw as i16 as i64, 2, u64::from(raw))
+            }
+            LoadOpCode::LHU => {
+                let raw = self.memory.load16(address)?;
+                (i64::from(raw), 2, u64::from(raw))
+            }
+            LoadOpCode::LW => {
+                let raw = self.memory.load32(address)?;
+                (raw as i32 as i64, 4, u64::from(raw))
+            }
+            LoadOpCode::LD => {
+                let raw = self.memory.load64(address)?;
+                (raw as i64, 8, raw)
+            }
         };
         self.cpu.set_reg_value(inst.rd, value);
         Ok((
             self.cpu.get_pc() + WORD_SIZE,
             MemoryEvent {
                 kind: MemoryEventKind::Load,
+                opcode: inst.op_code.to_string(),
+                register: inst.rd,
                 address,
+                address_hex: format!("{address:#x}"),
                 width,
                 value,
+                register_value: value.to_string(),
+                raw_value: format_raw_value(raw_value, width),
                 previous_value: None,
+                previous_raw_value: None,
             },
         ))
     }
@@ -200,10 +224,17 @@ impl Executor {
             self.cpu.get_pc() + WORD_SIZE,
             MemoryEvent {
                 kind: MemoryEventKind::Store,
+                opcode: inst.op_code.to_string(),
+                register: inst.rs,
                 address,
+                address_hex: format!("{address:#x}"),
                 width,
                 value,
+                register_value: source.to_string(),
+                raw_value: format_raw_value(value as u64, width),
                 previous_value,
+                previous_raw_value: previous_value
+                    .map(|previous| format_raw_value(previous as u64, width)),
             },
         ))
     }
@@ -264,4 +295,16 @@ impl Executor {
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(&self.trace)
     }
+}
+
+fn format_raw_value(value: u64, width: u8) -> String {
+    let digits = usize::from(width) * 2;
+    let masked = match width {
+        1 => value & u64::from(u8::MAX),
+        2 => value & u64::from(u16::MAX),
+        4 => value & u64::from(u32::MAX),
+        8 => value,
+        _ => value,
+    };
+    format!("0x{masked:0digits$x}")
 }

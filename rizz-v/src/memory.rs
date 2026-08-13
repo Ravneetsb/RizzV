@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use derive_more::Display as MoreDisplay;
 use serde::Serialize;
 
+use crate::reg::Register;
+
 const STACK_BASE: u64 = 0x1000;
 const STACK_SIZE: u64 = 0x1000;
 
@@ -23,10 +25,16 @@ pub enum MemoryEventKind {
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct MemoryEvent {
     pub kind: MemoryEventKind,
+    pub opcode: String,
+    pub register: Register,
     pub address: u64,
+    pub address_hex: String,
     pub width: u8,
     pub value: i64,
+    pub register_value: String,
+    pub raw_value: String,
     pub previous_value: Option<i64>,
+    pub previous_raw_value: Option<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]

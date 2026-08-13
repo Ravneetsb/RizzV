@@ -1,3 +1,4 @@
-add t0, a0, a0
-sub t1, t0, a1
-mul t1, t0, a1
+li a0, 5
+li a1, 10
+sub t0, a1, a0
+add t1, a1, a0

@@ -8,11 +8,11 @@ use pest::iterators::Pair;
 use serde::Serialize;
 use strum_macros::{Display, EnumIter, EnumString};
 
-use crate::Rule;
 use crate::instruction::{Instruction, JumpTarget, MemoryRef, Target};
 use crate::reg::{
     BOpCode, IOpCode, JOpCode, LoadOpCode, PseudoCode, ROpCode, Register, StoreOpCode,
 };
+use crate::Rule;
 
 const WORD_SIZE: u64 = 4;
 

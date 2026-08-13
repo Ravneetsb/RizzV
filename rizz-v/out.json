@@ -1,52 +1,71 @@
-{
-  "program": [
-    {
-      "I": {
-        "op_code": "ADDI",
-        "rd": "A0",
-        "rs": "Zero",
-        "imm": 5
-      }
-    }
-  ],
-  "cpu": {
-    "pc": 4,
-    "regs": {
-      "regs": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
+[
+  {
+    "I": {
+      "op_code": "ADDI",
+      "rd": "A0",
+      "rs": "Zero",
+      "imm": 1
     }
   },
-  "labels": {}
+  {
+    "I": {
+      "op_code": "ADDI",
+      "rd": "A1",
+      "rs": "Zero",
+      "imm": 2
+    }
+  },
+  {
+    "I": {
+      "op_code": "ADDI",
+      "rd": "A2",
+      "rs": "Zero",
+      "imm": 3
+    }
+  },
+  {
+    "I": {
+      "op_code": "ADDI",
+      "rd": "A3",
+      "rs": "Zero",
+      "imm": -1
+    }
+  },
+  {
+    "R": {
+      "op_code": "ADD",
+      "rd": "A0",
+      "rs1": "A0",
+      "rs2": "A1"
+    }
+  },
+  {
+    "R": {
+      "op_code": "ADD",
+      "rd": "A0",
+      "rs1": "A0",
+      "rs2": "A2"
+    }
+  },
+  {
+    "R": {
+      "op_code": "ADD",
+      "rd": "A0",
+      "rs1": "A0",
+      "rs2": "A3"
+    }
+  },
+  {
+    "J": {
+      "op_code": "JALR",
+      "rd": "Zero",
+      "address": {
+        "register": "RA",
+        "offset": 0
+      }
+    }
+  }
+]
+{
+  "sadd4": 0
 }
